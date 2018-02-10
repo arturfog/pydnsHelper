@@ -3,11 +3,11 @@ class HostsSources:
 
     @staticmethod
     def load_sources_urls():
-        HostsSources.links.append("http://winhelp2002.mvps.org/dl.txt")
-        HostsSources.links.append("https://raw.githubusercontent.com/yous/YousList/master/dl.txt")
-        HostsSources.links.append("https://raw.githubusercontent.com/StevenBlack/dl/master/dl")
-        HostsSources.links.append("http://sysctl.org/cameleon/dl")
-        HostsSources.links.append("http://someonewhocares.org/dl/dl")
+        HostsSources.links.append("http://winhelp2002.mvps.org/hosts.txt")
+        HostsSources.links.append("https://raw.githubusercontent.com/yous/YousList/master/hosts.txt")
+        HostsSources.links.append("https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts")
+        HostsSources.links.append("http://sysctl.org/cameleon/hosts")
+        HostsSources.links.append("http://someonewhocares.org/hosts/hosts")
 
     @staticmethod 
     def get_links():

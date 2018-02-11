@@ -26,11 +26,11 @@ class Downloader:
         return self.download_dir
 
     def send_request(self, url: str) -> None:
-        print("Sending request: " + url)
+        # print("Sending request: " + url)
         self.req = requests.get(url)
-        print(self.req.status_code)
-        print(self.req.headers['content-type'])
-        print(self.req.encoding)
+        # print(self.req.status_code)
+        # print(self.req.headers['content-type'])
+        # print(self.req.encoding)
 
     def download_file(self, url, filename=None):
         self.send_request(url)

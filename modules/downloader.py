@@ -1,3 +1,19 @@
+# Copyright (C) 2018  Artur Fogiel
+# This file is part of pyDNSHelper.
+#
+# pyDNSHelper is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# pyDNSHelper is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with pyDNSHelper.  If not, see <http://www.gnu.org/licenses/>.
+
 import requests
 from enum import Enum
 import os
@@ -20,7 +36,7 @@ class HTTPDownloader:
         self.url = ''
         self.file_path = ''
         self.threads = []
-        self.response = None
+        self.parts = 1
 
     def clean(self):
         self.total_bytes = 0
@@ -38,8 +54,15 @@ class HTTPDownloader:
         :param url: URL of file.
         :param file_path: path to file
         :return: :bool object
+        :raise: ValueError
         :rtype: bool
         """
+        if not str(url):
+            raise ValueError("url cannot be empty")
+
+        if not str(file_path):
+            raise ValueError("file_path cannot be empty")
+
         self.clean()
         self.url = url
         self.file_path = file_path
@@ -49,18 +72,30 @@ class HTTPDownloader:
 
         if total_length is not None:
             self.total_bytes = int(total_length)
+            # TODO: watch out for small files
+            part_bytes = int(total_length) / self.parts
 
-            print("starting thread")
-            self.threads.append(Thread(target=self.dl()))
+            self.create_empty_file(self.file_path)
+
+            print("starting threads")
+            for i in range(self.parts):
+                start = int(part_bytes * i)
+                end = int(start + part_bytes)
+
+            self.threads.append(Thread(target=self.dl(), kwargs={'start': start, 'end': end}))
             self.threads[0].start()
             self.threads[0].join()
 
-    def dl(self):
-        with open(self.file_path, "wb") as file:
+    def dl(self, start, end):
+        with open(self.file_path, "w+b") as file:
             print("Downloading %s" % self.file_path)
 
+            # specify the starting and ending of the file
+            headers = {'Range': 'bytes=%d-%d' % (start, end)}
+            response = requests.get(self.url, headers=headers, stream=True)
+
             self.downloaded_bytes = 0
-            for data in self.response.iter_content(chunk_size=self.chunk_bytes):
+            for data in response.iter_content(chunk_size=self.chunk_bytes):
                 # continue ?
                 if self.work == WorkMode.STOP or self.work == WorkMode.CANCEL:
                     self.clean()
@@ -70,6 +105,7 @@ class HTTPDownloader:
                     break
 
                 self.downloaded_bytes += len(data)
+                file.seek(start)
                 file.write(data)
 
     def stop(self):

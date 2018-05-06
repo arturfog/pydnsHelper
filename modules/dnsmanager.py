@@ -23,7 +23,8 @@ import dns.rdataclass
 import dns.rdatatype
 import dns.resolver
 import dns.rrset
-
+import getdns
+import sys
 
 from urllib3.util import connection
 
@@ -71,31 +72,91 @@ def patched_create_connection(address, *args, **kwargs):
     # resolve hostname to an ip address; use your own
     # resolver here, as otherwise the system resolver will be used.
     host, port = address
-    dnssec = DNSSEC()
-    print(address)
-    hostname = dnssec.resolveIPv4(host) # your_dns_resolver(host)
+    hostname = DNSSEC.resolveIPv4(host) # your_dns_resolver(host)
+    if len(hostname) > 1:
+        hostname = hostname[0]
     return _orig_create_connection((hostname, port), *args, **kwargs)
 
 
 connection.create_connection = patched_create_connection
 
-class DNSSEC(object):
 
-    def __init__(self):
-        self.my_resolver = dns.resolver.Resolver()
-        self.my_resolver.nameservers = ['1.1.1.1']
+class DNSSEC():
+    dnssec_status = {
+        "DNSSEC_SECURE": 400,
+        "DNSSEC_BOGUS": 401,
+        "DNSSEC_INDETERINATE": 402,
+        "DNSSEC_INSECURE": 403,
+        "DNSSEC_NOT_PERFORMED": 404
+    }
 
-    def resolveIPv4(self, domain):
-        ipv4answers = self.my_resolver.query(domain, 'A')
-        for data in ipv4answers:
-            print("DNSSEC: " + str(data))
-        return str(ipv4answers[0])
+    @staticmethod
+    def gen_message(value):
+        for message in DNSSEC.dnssec_status.keys():
+            if DNSSEC.dnssec_status[message] == value:
+                return message
 
-    def resolveIPv6(self, domain):
-        ipv6answers = self.my_resolver.query(domain, 'AAAA')
-        for data in ipv6answers:
-            print(data)
-        return ipv6answers
+    @staticmethod
+    def resolve_dnssec(domain):
+        ctx = getdns.Context()
+        extensions = {"return_both_v4_and_v6":
+                          getdns.EXTENSION_TRUE,
+                      "dnssec_return_status":
+                          getdns.EXTENSION_TRUE}
+        results = ctx.address(name=domain,
+                              extensions=extensions)
+
+        adresses = []
+        statuses = []
+        if results.status == getdns.RESPSTATUS_GOOD:
+            for addr in results.just_address_answers:
+                adresses.append(addr["address_data"])
+
+            for result in results.replies_tree:
+                if "dnssec_status" in result.keys():
+                    if results.status != getdns.RESPSTATUS_NO_NAME:
+                        statuses.append(result["dnssec_status"])
+
+            return adresses, statuses
+
+    @staticmethod
+    def resolve(domain):
+        addresses, statuses = DNSSEC.resolve_dnssec(domain)
+        is_secure = True
+        for status in statuses:
+            if status != DNSSEC.dnssec_status["DNSSEC_SECURE"]:
+                is_secure = False
+
+        if is_secure:
+            return addresses
+        else:
+            return None
+
+    @staticmethod
+    def resolveIPv4(domain):
+        adresses = DNSSEC.resolve(domain)
+        if adresses is None:
+            return None
+        adresses_ipv4 = []
+        for addr in adresses:
+            if "." in addr:
+                adresses_ipv4.append(addr)
+
+        print(adresses_ipv4)
+        return adresses_ipv4
+
+    @staticmethod
+    def resolveIPv6(domain):
+        adresses = DNSSEC.resolve(domain)
+        if adresses is None:
+            return None
+        adresses_ipv6 = []
+        for addr in adresses:
+            if ":" in addr:
+                adresses_ipv6.append(addr)
+
+        print(adresses_ipv6)
+        return adresses_ipv6
 
 
 class SecureDNS(object):
@@ -203,20 +264,17 @@ def main():
     result1 = dns1.resolve("nasa.gov")
     print(repr(result1))
 
-    result2 = dns1.resolve("facebook.com")
-    print(repr(result2))
+    #result2 = dns1.resolve("facebook.com")
+    #print(repr(result2))
 
     dns2 = SecureDNSCloudflare()
     result3 = dns2.resolve("nasa.gov")
     print(repr(result3))
 
-    result4 = dns2.resolve("facebook.com")
-    print(repr(result4))
+    #result4 = dns2.resolve("facebook.com")
+    #print(repr(result4))
 
-    # dnssec = DNSSEC()
-    # dnssec.resolveIPv4("cloudflare-dns.com")
-    # dnssec.resolveIPv4("dns.google.com")
-
+    #print(repr(DNSSEC.resolve("nasa.gov")))
 
 if __name__ == '__main__':
     main()

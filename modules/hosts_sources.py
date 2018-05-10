@@ -14,11 +14,13 @@
 # You should have received a copy of the GNU General Public License
 # along with pyDNSHelper.  If not, see <http://www.gnu.org/licenses/>.
 
+
 class HostsSources:
     links = []
 
     @staticmethod
     def load_sources_urls():
+        HostsSources.links.clear()
         HostsSources.links.append("http://winhelp2002.mvps.org/hosts.txt")
         HostsSources.links.append("https://raw.githubusercontent.com/yous/YousList/master/hosts.txt")
         HostsSources.links.append("https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts")

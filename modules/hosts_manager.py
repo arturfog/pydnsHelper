@@ -29,6 +29,7 @@ class Host(Base):
     # Notice that each column is also a normal Python instance attribute.
     id = Column(Integer, primary_key=True)
     url = Column(String(250), nullable=False)
+    ip = Column(String(64), nullable=False)
     comment = Column(String(250))
 
 
@@ -42,7 +43,7 @@ class HostsManager:
     def create_db(self, path):
         self.eng = create_engine("sqlite://" + path)
         # create all tables
-        Base.metadata.create_all(self.engine)
+        Base.metadata.create_all(self.eng)
         # connect to db
         self.conn = self.eng.connect()
 
@@ -52,12 +53,6 @@ class HostsManager:
 
         db_session = sessionmaker(bind=self.engine)
         self.session = db_session()
-
-    def block_google_services(self):
-        pass
-
-    def unblock_google_services(self):
-        pass
 
     def block_microsoft_services(self):
         pass

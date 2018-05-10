@@ -19,6 +19,8 @@ from enum import Enum
 import os
 from threading import Thread
 
+# Test file with not even number of bytes:
+# https://ftp.gnu.org/pub/gnu/bash/bash-2.02.1.tar.gz
 
 class WorkMode(Enum):
     NORMAL = 0
@@ -36,17 +38,31 @@ class HTTPDownloader:
         self.url = ''
         self.file_path = ''
         self.threads = []
-        self.parts = 1
+        self.parts = 2
 
     def clean(self):
         self.total_bytes = 0
         self.downloaded_bytes = 0
         self.work = True
+        del self.threads[:]
+        self.url = ''
+        self.file_path = ''
 
     def create_empty_file(self, file_path: str):
         fp = open(file_path, "wb")
-        fp.write('\0' * self.total_bytes)
+        fp.seek(self.total_bytes - 1)
+        fp.write(b"\0")
         fp.close()
+
+    @staticmethod
+    def gen_random_filename(prefix: str, directory: str):
+        import tempfile
+        name = tempfile.mktemp(prefix=prefix, dir=directory)
+        return name
+
+    @staticmethod
+    def get_filename_from_url(url: str):
+        pass
 
     def download(self, url: str, file_path: str) -> None:
         r"""Downloads file from HTTP server.
@@ -69,44 +85,56 @@ class HTTPDownloader:
 
         response = requests.get(self.url, stream=True)
         total_length = response.headers.get('content-length')
+        print(repr(response.headers))
 
         if total_length is not None:
+            print("Total: " + str(total_length))
             self.total_bytes = int(total_length)
-            # TODO: watch out for small files
+            # don't download files smaller than 128 Kb in chunks
+            if self.total_bytes < 131072:
+                self.parts = 1
+
             part_bytes = int(total_length) / self.parts
+            print("Part: " + str(part_bytes))
 
             self.create_empty_file(self.file_path)
 
             print("starting threads")
             for i in range(self.parts):
-                start = int(part_bytes * i)
+                start = int((part_bytes + 1) * i)
                 end = int(start + part_bytes)
+                if i == (self.parts - 1):
+                    end = self.total_bytes
+                self.threads.append(Thread(target=self.dl, kwargs={'start': start, 'end': end}))
+                self.threads[i].start()
 
-            self.threads.append(Thread(target=self.dl(), kwargs={'start': start, 'end': end}))
-            self.threads[0].start()
-            self.threads[0].join()
+            for i in range(self.parts):
+                self.threads[i].join()
 
-    def dl(self, start, end):
+    def dl(self, start: int, end: int):
         with open(self.file_path, "w+b") as file:
-            print("Downloading %s" % self.file_path)
+            print("Downloading %s" % self.file_path + " s:" + str(start) + " e: " + str(end))
 
             # specify the starting and ending of the file
             headers = {'Range': 'bytes=%d-%d' % (start, end)}
             response = requests.get(self.url, headers=headers, stream=True)
 
             self.downloaded_bytes = 0
+            file.seek(start)
             for data in response.iter_content(chunk_size=self.chunk_bytes):
                 # continue ?
                 if self.work == WorkMode.STOP or self.work == WorkMode.CANCEL:
+                    print("stopping download ...")
                     self.clean()
                     file.close()
                     if self.work == WorkMode.CANCEL:
+                        print("cancelling download ...")
                         os.unlink(self.file_path)
                     break
 
                 self.downloaded_bytes += len(data)
-                file.seek(start)
                 file.write(data)
+            file.close()
 
     def stop(self):
         self.work = WorkMode.STOP

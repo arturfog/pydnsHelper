@@ -101,7 +101,7 @@ class Resolver(ProxyResolver):
     def resolve(self, request, handler):
         cdns = SecureDNSCloudflare()
         domain = str(request.q.qname)
-        ip = cdns.resolve(domain)
+        ip = cdns.resolveIPV4(domain)
         gdns = SecureDNSGoogle()
 
         type_name = QTYPE[request.q.qtype]
@@ -112,12 +112,13 @@ class Resolver(ProxyResolver):
         d.header.set_qr(1)
         d.header.set_ra(1)
         d.add_question(dns.DNSQuestion(domain))
+
         a = dns.A(ip[0])
+        aaa = dns.AAAA(ip[0])
+
         d.add_answer(RR(domain, QTYPE.A, ttl=60, rdata=a))
 
         ret = super().resolve(request, handler)
-        print(" test1: [" + repr(ret) + "]")
-        #print("t: " + str(type(d.rr[0].rdata)) + "test2: [" + repr(d) + "]")
         return d
 
 

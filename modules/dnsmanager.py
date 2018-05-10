@@ -63,22 +63,17 @@ UNRESERVED_CHARS = 'abcdefghijklmnopqrstuvwxyz' \
 class InvalidHostName(Exception):
     pass
 
-
 _orig_create_connection = connection.create_connection
-
-
 def patched_create_connection(address, *args, **kwargs):
     """Wrap urllib3's create_connection to resolve the name elsewhere"""
     # resolve hostname to an ip address; use your own
     # resolver here, as otherwise the system resolver will be used.
     host, port = address
     hostname = DNSSEC.resolveIPv4(host) # your_dns_resolver(host)
+    print("host: " + host)
     if len(hostname) > 1:
         hostname = hostname[0]
     return _orig_create_connection((hostname, port), *args, **kwargs)
-
-
-connection.create_connection = patched_create_connection
 
 
 class DNSSEC():
@@ -189,12 +184,15 @@ class SecureDNSCloudflare(SecureDNS):
             'ct': ct
         }
 
-    def resolve(self, hostname):
+    def resolveIPV6(self, hostname):
         '''return ip address(es) of hostname'''
+
+        connection.create_connection = patched_create_connection
         hostname = self.prepare_hostname(hostname)
         self.params.update({'name': hostname})
 
         r = requests.get(self.url, params=self.params)
+        connection.create_connection = _orig_create_connection
         if r.status_code == 200:
             response = r.json()
             print(response)
@@ -203,7 +201,31 @@ class SecureDNSCloudflare(SecureDNS):
                 for answer in response['Answer']:
                     name, response_type, ttl, data = \
                         map(answer.get, ('name', 'type', 'ttl', 'data'))
-                    if response_type in (A, AAAA):
+                    if response_type is AAAA:
+                        answers.append(data)
+                if answers == []:
+                    return None
+                return answers
+        return None
+
+    def resolveIPV4(self, hostname):
+        '''return ip address(es) of hostname'''
+
+        connection.create_connection = patched_create_connection
+        hostname = self.prepare_hostname(hostname)
+        self.params.update({'name': hostname})
+
+        r = requests.get(self.url, params=self.params)
+        connection.create_connection = _orig_create_connection
+        if r.status_code == 200:
+            response = r.json()
+            print(response)
+            if response['Status'] == NOERROR:
+                answers = []
+                for answer in response['Answer']:
+                    name, response_type, ttl, data = \
+                        map(answer.get, ('name', 'type', 'ttl', 'data'))
+                    if response_type is A:
                         answers.append(data)
                 if answers == []:
                     return None
@@ -230,6 +252,8 @@ class SecureDNSGoogle(SecureDNS):
 
     def resolve(self, hostname):
         '''return ip address(es) of hostname'''
+
+        connection.create_connection = patched_create_connection
         hostname = self.prepare_hostname(hostname)
         self.params.update({'name': hostname})
 
@@ -238,6 +262,7 @@ class SecureDNSGoogle(SecureDNS):
             self.params.update({'random_padding': padding})
 
         r = requests.get(self.url, params=self.params)
+        connection.create_connection = _orig_create_connection
         if r.status_code == 200:
             response = r.json()
             print(response)
@@ -257,24 +282,3 @@ class SecureDNSGoogle(SecureDNS):
         '''generate a pad using unreserved chars'''
         pad_len = random.randint(10, 50)
         return ''.join(random.choice(UNRESERVED_CHARS) for _ in range(pad_len))
-
-
-def main():
-    dns1 = SecureDNSGoogle()
-    result1 = dns1.resolve("nasa.gov")
-    print(repr(result1))
-
-    #result2 = dns1.resolve("facebook.com")
-    #print(repr(result2))
-
-    dns2 = SecureDNSCloudflare()
-    result3 = dns2.resolve("nasa.gov")
-    print(repr(result3))
-
-    #result4 = dns2.resolve("facebook.com")
-    #print(repr(result4))
-
-    #print(repr(DNSSEC.resolve("nasa.gov")))
-
-if __name__ == '__main__':
-    main()

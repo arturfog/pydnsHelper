@@ -25,11 +25,11 @@ Base = declarative_base()
 
 class Host(Base):
     __tablename__ = 'host'
-    # Here we define columns for the table address.
-    # Notice that each column is also a normal Python instance attribute.
+
     id = Column(Integer, primary_key=True)
     url = Column(String(250), nullable=False)
     ip = Column(String(64), nullable=False)
+    ttl = Column(Integer, nullable=False)
     comment = Column(String(250))
 
 
@@ -41,7 +41,9 @@ class HostsManager:
         self.session = None
 
     def create_db(self, path):
-        self.eng = create_engine("sqlite://" + path)
+        print("Creating db ... " + path)
+        self.eng = create_engine("sqlite:///" + path, echo=True)
+        print(repr(self.    eng))
         # create all tables
         Base.metadata.create_all(self.eng)
         # connect to db
@@ -50,26 +52,23 @@ class HostsManager:
     def open_db(self, path):
         if os.path.isfile(path) is False:
             self.create_db(path)
+        else:
+            self.eng = create_engine("sqlite:///" + path, echo=True)
+            self.conn = self.eng.connect()
 
-        db_session = sessionmaker(bind=self.engine)
+        db_session = sessionmaker(bind=self.eng)
         self.session = db_session()
 
-    def block_microsoft_services(self):
-        pass
-
-    def unblock_microsoft_services(self):
-        pass
-
     def block_site(self, url):
-        pass
+        self.remove_site(url)
+        self.add_site(url)
 
     def unblock_site(self, url):
-        pass
+        self.remove_site(url)
 
-    def add_site(self, url, comment):
-        new_host = Host(url=url, comment=comment)
+    def add_site(self, url: str, comment="", ttl=60):
+        new_host = Host(ip='0.0.0.0', url=url, ttl=ttl, comment=comment)
         self.session.add(new_host)
-        self.session.commit()
 
     def remove_site(self, url):
         host = self.session.query(Host).filter(Host.url == url).one()
@@ -80,7 +79,24 @@ class HostsManager:
         pass
 
     def import_host_file(self, path):
-        pass
+        from os import listdir
+        from os.path import isfile, join
+        onlyfiles = [f for f in listdir(path) if isfile(join(path, f))]
+        for file in onlyfiles:
+            with open(join(path, file), "r") as hosts_file:
+                for line in hosts_file:
+                    self.add_imported_entry(line)
+            self.session.commit()
+
+    def add_imported_entry(self, line: str):
+        if line.startswith("#"):
+            return
+
+        line = line.strip()
+        columns = line.split(' ')
+        if len(columns) > 1:
+            self.add_site(columns[1])
+            print(columns[1])
 
     def generate_host_file(self, output_path):
         pass

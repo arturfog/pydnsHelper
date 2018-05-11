@@ -16,14 +16,14 @@ def main():
     links = hosts_sources.HostsSources.get_links()
 
     dl = downloader.HTTPDownloader()
-    for link in links:
-        print(link)
+    #for link in links:
+        #print(link)
         #dl.download(link, dl.gen_random_filename("hosts", "/tmp"))
         #dl.download('https://ftp.gnu.org/pub/gnu/bash/bash-2.02.1.tar.gz', '/tmp/hosts1')
 
     hm = hosts_manager.HostsManager()
     hm.open_db('/tmp/hosts.db')
-    hm.import_host_file('/home/artur/hosts/host')
+    hm.import_host_file('/home/artur/hosts')
 
 
 if __name__ == "__main__":

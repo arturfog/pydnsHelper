@@ -23,7 +23,9 @@ def main():
 
     hm = hosts_manager.HostsManager()
     hm.open_db('/tmp/hosts.db')
-    hm.import_host_file('/home/artur/hosts')
+    hm.import_host_files('/home/artur/hosts')
+    hosts_manager.HostsManager.generate_host_file(hm.get_session(), '/tmp/hosts.txt')
+    print(hm.get_ip("dobre-programy.pl"))
 
 
 if __name__ == "__main__":

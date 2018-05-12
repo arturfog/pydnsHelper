@@ -43,7 +43,7 @@ class HostsManager:
 
     def create_db(self, path):
         print("Creating db ... " + path)
-        self.eng = create_engine("sqlite:///" + path, echo=True)
+        self.eng = create_engine("sqlite:///" + path, echo=False)
         # create all tables
         Base.metadata.create_all(self.eng)
         # connect to db
@@ -53,7 +53,7 @@ class HostsManager:
         if os.path.isfile(path) is False:
             self.create_db(path)
         else:
-            self.eng = create_engine("sqlite:///" + path, echo=True)
+            self.eng = create_engine("sqlite:///" + path, echo=False)
             self.conn = self.eng.connect()
 
         db_session = sessionmaker(bind=self.eng)
@@ -63,32 +63,35 @@ class HostsManager:
         self.remove_site(url)
         self.add_site(url=url, ttl=999)
 
-    def get_ip(self, url: str):
-        host = self.session.query(Host).filter(Host.url == url).one()
-        return host.ip
-
-    def unblock_site(self, url):
+    def unblock_site(self, url: str):
         self.remove_site(url)
 
-    def get_ip(self, url):
+    def get_ip(self, url: str):
         instance = self.session.query(Host).filter_by(url=url).first()
         if instance:
-            return instance
+            return instance.ip
         else:
             return None
 
-    def add_site(self, url: str, comment="", ttl=60):
+    def add_site(self, url: str, comment: str="", ttl: int=60, ip: str='0.0.0.0'):
         if url == "" or url == "0.0.0.0":
             return
-        new_host = Host(ip='0.0.0.0', url=url, ttl=ttl, comment=comment)
+
+        new_host = Host(ip=ip, url=url, ttl=ttl, comment=comment)
         self.session.add(new_host)
 
-    def remove_site(self, url):
+    def commit(self):
+        self.session.commit()
+
+    def close(self):
+        self.session.close()
+
+    def remove_site(self, url: str):
         host = self.session.query(Host).filter(Host.url == url).one()
         self.session.remove(host)
         self.session.commit()
 
-    def import_host_files(self, path):
+    def import_host_files(self, path: str):
         from os import listdir
         from os.path import isfile, join
         onlyfiles = [f for f in listdir(path) if isfile(join(path, f))]
@@ -122,8 +125,11 @@ class HostsManager:
     def get_session(self):
         return self.session
 
+    def monitor_ttl(self):
+        pass
+
     @staticmethod
-    def generate_host_file(session, output_path):
+    def generate_host_file(session, output_path: str):
         hosts = session.query(Host)
         with open(output_path, "w") as hosts_file:
             for host in hosts:

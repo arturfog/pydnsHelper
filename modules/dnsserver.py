@@ -17,7 +17,6 @@
 # based on https://github.com/samuelcolvin/dnserver
 from modules.dnsmanager import *
 
-import json
 import logging
 import os
 import signal
@@ -99,10 +98,14 @@ class Resolver(ProxyResolver):
         super().__init__(upstream, 53, 5)
 
     def resolve(self, request, handler):
-        cdns = SecureDNSCloudflare()
         domain = str(request.q.qname)
+
+        cdns = SecureDNSCloudflare()
         ip = cdns.resolveIPV4(domain)
-        gdns = SecureDNSGoogle()
+        # no response in cache and from cloudflare, try google dns
+        if ip is None:
+            gdns = SecureDNSGoogle()
+            ip = gdns.resolve(domain)
 
         type_name = QTYPE[request.q.qtype]
 
@@ -118,7 +121,10 @@ class Resolver(ProxyResolver):
 
         d.add_answer(RR(domain, QTYPE.A, ttl=60, rdata=a))
 
+        # resolve using normal DNS
         ret = super().resolve(request, handler)
+
+        # return generated answer
         return d
 
 

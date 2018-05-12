@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with pyDNSHelper.  If not, see <http://www.gnu.org/licenses/>.
 
-
+from modules import downloader
 class HostsSources:
     links = []
 
@@ -38,12 +38,27 @@ class HostsSources:
                 List of string with links to dl file
 
         """
-        HostsSources.load_sources_urls()
+        if len(HostsSources.links) <= 0:
+            HostsSources.load_sources_urls()
         return HostsSources.links
 
     @staticmethod
     def get_number_of_links():
         return len(HostsSources.links)
+
+    @staticmethod
+    def check_for_new_hosts():
+        pass
+
+    @staticmethod
+    def download_hosts():
+        if len(HostsSources.links) <= 0:
+            HostsSources.load_sources_urls()
+
+        dl = downloader.HTTPDownloader()
+        for link in HostsSources.links:
+            print(link)
+            dl.download(link, dl.gen_random_filename("hosts", "/tmp"))
 
     @staticmethod
     def get_link(num):
@@ -61,7 +76,8 @@ class HostsSources:
                 String with selected link
 
         """
-        HostsSources.load_sources_urls()
+        if len(HostsSources.links) <= 0:
+            HostsSources.load_sources_urls()
         if num < HostsSources.get_number_of_links():
             return HostsSources.links[num]
         return None

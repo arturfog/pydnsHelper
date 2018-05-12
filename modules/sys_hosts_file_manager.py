@@ -47,15 +47,6 @@ class SystemHostFileManager:
         shutil.copy2(SystemHostFileManager.get_hosts_path(),
                      os.getcwd() + '/backups/hosts_' + SystemHostFileManager.get_date_for_backup() + '.bak')
 
-    def update_system_host(self):
-        pass
-
-    def restore_hosts_from_backup(self):
-        pass
-
-    def set_default_hosts(self):
-        pass
-
     @staticmethod
     def get_file_sha256(path: str) -> str:
         import hashlib

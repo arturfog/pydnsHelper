@@ -16,6 +16,8 @@
 
 import os
 import re
+from time import sleep
+from threading import Thread
 from sqlalchemy import Column, Integer, String
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import create_engine
@@ -40,6 +42,8 @@ class HostsManager:
         self.eng = None
         self.conn = None
         self.session = None
+        self.threads = []
+        self.do_monitor_ttl = True
 
     def create_db(self, path):
         print("Creating db ... " + path)
@@ -91,6 +95,7 @@ class HostsManager:
         self.session.remove(host)
         self.session.commit()
 
+    # TODO: add support for threads
     def import_host_files(self, path: str):
         from os import listdir
         from os.path import isfile, join
@@ -125,8 +130,23 @@ class HostsManager:
     def get_session(self):
         return self.session
 
+    def start_ttl_monitoring(self):
+        self.threads.append(Thread(target=self.monitor_ttl))
+        self.threads[0].start()
+
     def monitor_ttl(self):
-        pass
+        while self.do_monitor_ttl:
+            # select all non blocked urls
+            query = self.session.query(Host).order_by(Host.ttl).filter(Host.ttl < 999).all()
+            for item in query:
+                if item.ttl <= 0:
+                    self.remove_site(item.url)
+                else:
+                    item.ttl -= 1
+
+            self.session.commit()
+            # wait one minute for next update
+            sleep(60)
 
     @staticmethod
     def generate_host_file(session, output_path: str):

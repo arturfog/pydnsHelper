@@ -105,6 +105,6 @@ class HostsManager:
     @staticmethod
     def generate_host_file(output_path: str):
         all_entries = Host.objects.all()
-        with open(output_path, "w") as hosts_file:
+        with open(output_path, "w", encoding="utf-8") as hosts_file:
             for host in all_entries:
                 hosts_file.write(host.ip + " " + host.url + "\n")

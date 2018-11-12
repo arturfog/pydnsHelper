@@ -18,6 +18,7 @@ class HostSourcesAdmin(admin.ModelAdmin):
             path('importsources/', self.import_sources),
             path('importhosts/', self.import_hosts),
             path('downloadhosts/', self.download_hosts),
+            path('genhosts/', self.gen_hosts),
         ]
 
         return my_urls + urls
@@ -26,6 +27,13 @@ class HostSourcesAdmin(admin.ModelAdmin):
         #self.model.objects.all().update(is_immortal=True)
         HostsSourcesUtils.load_sources_urls()
         self.message_user(request, "All hosts files URL's imported")
+        return HttpResponseRedirect("../")
+
+    def gen_hosts(self, request):
+        #self.model.objects.all().update(is_immortal=True)
+        hm = HostsManager()
+        hm.generate_host_file("/tmp/hosts.txt")
+        self.message_user(request, "Hosts file generated")
         return HttpResponseRedirect("../")
 
     def import_hosts(self, request):

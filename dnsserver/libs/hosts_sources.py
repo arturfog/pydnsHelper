@@ -15,7 +15,7 @@
 # along with pyDNSHelper.  If not, see <http://www.gnu.org/licenses/>.
 from . import downloader
 from webui.models import HostSources
-
+import os
 
 class HostsSourcesUtils:
     links = []
@@ -29,59 +29,21 @@ class HostsSourcesUtils:
         HostsSourcesUtils.links.append("http://sysctl.org/cameleon/hosts")
         HostsSourcesUtils.links.append("http://someonewhocares.org/hosts/hosts")
 
-        HostSources.objects.create(url='Sample title')
-
-    @staticmethod 
-    def get_links():
-        """
-            Gets list of string with links to dl files
-
-            Returns
-            -------
-            []->string
-                List of string with links to dl file
-
-        """
-        if len(HostsSourcesUtils.links) <= 0:
-            HostsSourcesUtils.load_sources_urls()
-        return HostsSourcesUtils.links
+        for link in HostsSourcesUtils.links:
+            if not HostSources.objects.filter(url=link).exists():
+                HostSources.objects.create(url=link)
 
     @staticmethod
     def get_number_of_links():
-        return len(HostsSourcesUtils.links)
-
-    @staticmethod
-    def check_for_new_hosts():
-        pass
+        return HostSources.objects.count()
 
     @staticmethod
     def download_hosts():
-        if len(HostsSourcesUtils.links) <= 0:
-            HostsSourcesUtils.load_sources_urls()
-
-        dl = downloader.HTTPDownloader()
-        for link in HostsSourcesUtils.links:
-            print(link)
-            dl.download(link, dl.gen_random_filename("hosts", "/tmp"))
-
-    @staticmethod
-    def get_link(num):
-        """
-            Gets link from list at selected position
-
-            Parameters
-            ----------
-            num : int
-                number of link to get
-
-            Returns
-            -------
-            string
-                String with selected link
-
-        """
-        if len(HostsSourcesUtils.links) <= 0:
-            HostsSourcesUtils.load_sources_urls()
-        if num < HostsSourcesUtils.get_number_of_links():
-            return HostsSourcesUtils.links[num]
-        return None
+        if HostsSourcesUtils.get_number_of_links() > 0:
+            all_entries = HostSources.objects.all()
+            dl = downloader.HTTPDownloader()
+            for link in all_entries:
+                print(link.url)
+                if not os.path.isdir("/tmp/hosts/"):
+                    os.mkdir("/tmp/hosts")
+                dl.download(link.url, "/tmp/hosts/hosts" + str(link.id))

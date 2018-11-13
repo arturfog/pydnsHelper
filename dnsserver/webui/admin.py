@@ -6,6 +6,7 @@ from webui.models import Host
 from webui.models import HostSources
 from libs.hosts_sources import HostsSourcesUtils
 from libs.hosts_manager import HostsManager
+from libs.dnsserver import SecureDNSServer
 # Register your models here.
 
 
@@ -21,6 +22,7 @@ class HostSourcesAdmin(admin.ModelAdmin):
             path('downloadhosts/', self.download_hosts),
             path('genhosts/', self.gen_hosts),
             path('ttlmonitor/', self.start_ttlmonitor),
+            path('start/', self.start_server),
         ]
 
         return my_urls + urls
@@ -53,6 +55,12 @@ class HostSourcesAdmin(admin.ModelAdmin):
         hm.start_ttl_monitoring()
         self.message_user(request, "TTL monitor started")
         return HttpResponseRedirect("../")
+
+    def start_server(self, request):
+        self.message_user(request, "Server started")
+        SecureDNSServer.start()
+        return HttpResponseRedirect("../")
+
 
 class HostAdmin(admin.ModelAdmin):
     list_display = ('url', 'ip', 'ttl')

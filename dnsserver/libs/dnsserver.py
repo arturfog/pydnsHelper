@@ -15,7 +15,7 @@
 # along with pyDNSHelper.  If not, see <http://www.gnu.org/licenses/>.
 
 # based on https://github.com/samuelcolvin/dnserver
-from modules.dnsmanager import *
+from . import dnsmanager
 
 import logging
 import os
@@ -100,11 +100,11 @@ class Resolver(ProxyResolver):
     def resolve(self, request, handler):
         domain = str(request.q.qname)
 
-        cdns = SecureDNSCloudflare()
+        cdns = dnsmanager.SecureDNSCloudflare()
         ip = cdns.resolveIPV4(domain)
         # no response in cache and from cloudflare, try google dns
         if ip is None:
-            gdns = SecureDNSGoogle()
+            gdns = dnsmanager.SecureDNSGoogle()
             ip = gdns.resolve(domain)
 
         type_name = QTYPE[request.q.qtype]
@@ -117,7 +117,7 @@ class Resolver(ProxyResolver):
         d.add_question(dns.DNSQuestion(domain))
 
         a = dns.A(ip[0])
-        aaa = dns.AAAA(ip[0])
+        #aaa = dns.AAAA(ip[0])
 
         d.add_answer(RR(domain, QTYPE.A, ttl=60, rdata=a))
 
@@ -134,8 +134,9 @@ def handle_sig(signum, frame):
 
 
 class SecureDNSServer:
-    def start(self):
-        signal.signal(signal.SIGTERM, handle_sig)
+    @staticmethod
+    def start():
+        #signal.signal(signal.SIGTERM, handle_sig)
 
         port = int(os.getenv('PORT', 5053))
         upstream = os.getenv('UPSTREAM', '8.8.8.8')

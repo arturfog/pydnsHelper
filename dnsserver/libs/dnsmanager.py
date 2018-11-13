@@ -17,7 +17,7 @@
 import random
 import requests
 
-from modules import hosts_manager
+from . import hosts_manager
 import getdns
 from urllib3.util import connection
 
@@ -168,16 +168,12 @@ class SecureDNS(object):
     @staticmethod
     def add_url_to_cache(url: str, ip: str, ttl: int):
         hm = hosts_manager.HostsManager()
-        hm.open_db('/tmp/hosts.db')
         hm.add_site(url=url, ip=ip, ttl=ttl)
-        hm.commit()
-        hm.close()
         print("add url to cache")
 
     @staticmethod
     def get_ip_from_cache(hostname: str):
         hm = hosts_manager.HostsManager()
-        hm.open_db('/tmp/hosts.db')
         return hm.get_ip(hostname)
 
     @staticmethod

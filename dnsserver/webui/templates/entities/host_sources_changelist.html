@@ -18,6 +18,10 @@
             {% csrf_token %}
                 <button type="submit">Generate hosts.txt</button>
         </form>
+         <form action="ttlmonitor/" method="POST">
+            {% csrf_token %}
+                <button type="submit">Start TTL monitor</button>
+        </form>
     </div>
     <br />
     {{ block.super }}

@@ -90,9 +90,10 @@ class HostsManager:
         self.threads[0].start()
 
     def monitor_ttl(self):
+        print("Monitor started ...")
         while self.do_monitor_ttl:
             # select all non blocked urls
-            query = Host.objects.order_by('ttl').filter(ttl < 999).all()
+            query = Host.objects.order_by('ttl').filter(ttl__lt=999).all()
             for item in query:
                 if item.ttl <= 0:
                     self.remove_site(item.url)

@@ -8,6 +8,7 @@ from libs.hosts_sources import HostsSourcesUtils
 from libs.hosts_manager import HostsManager
 # Register your models here.
 
+
 class HostSourcesAdmin(admin.ModelAdmin):
     change_list_template = "entities/host_sources_changelist.html"
     search_fields = ('url',)
@@ -19,6 +20,7 @@ class HostSourcesAdmin(admin.ModelAdmin):
             path('importhosts/', self.import_hosts),
             path('downloadhosts/', self.download_hosts),
             path('genhosts/', self.gen_hosts),
+            path('ttlmonitor/', self.start_ttlmonitor),
         ]
 
         return my_urls + urls
@@ -30,23 +32,26 @@ class HostSourcesAdmin(admin.ModelAdmin):
         return HttpResponseRedirect("../")
 
     def gen_hosts(self, request):
-        #self.model.objects.all().update(is_immortal=True)
         hm = HostsManager()
         hm.generate_host_file("/tmp/hosts.txt")
         self.message_user(request, "Hosts file generated")
         return HttpResponseRedirect("../")
 
     def import_hosts(self, request):
-        #self.model.objects.all().update(is_immortal=True)
         hm = HostsManager()
         hm.import_host_files("/tmp/hosts/")
         self.message_user(request, "All hosts entries imported")
         return HttpResponseRedirect("../")
 
     def download_hosts(self, request):
-        #self.message_user(request, "Downloading hosts files. Please wait ...")
         HostsSourcesUtils.download_hosts()
         self.message_user(request, "Hosts downloaded")
+        return HttpResponseRedirect("../")
+
+    def start_ttlmonitor(self, request):
+        hm = HostsManager()
+        hm.start_ttl_monitoring()
+        self.message_user(request, "TTL monitor started")
         return HttpResponseRedirect("../")
 
 class HostAdmin(admin.ModelAdmin):

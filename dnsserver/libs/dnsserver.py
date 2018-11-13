@@ -132,6 +132,7 @@ def handle_sig(signum, frame):
     logger.info('pid=%d, got signal: %s, stopping...', os.getpid(), signal.Signals(signum).name)
     exit(0)
 
+
 class SecureDNSServer:
     def start(self):
         signal.signal(signal.SIGTERM, handle_sig)

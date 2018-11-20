@@ -56,7 +56,10 @@ UNRESERVED_CHARS = 'abcdefghijklmnopqrstuvwxyz' \
 class InvalidHostName(Exception):
     pass
 
+
 _orig_create_connection = connection.create_connection
+
+
 def patched_create_connection(address, *args, **kwargs):
     """Wrap urllib3's create_connection to resolve the name elsewhere"""
     # resolve hostname to an ip address; use your own
@@ -123,15 +126,24 @@ class DNSSEC():
 
     @staticmethod
     def resolveIPv4(domain: str):
+        ip = SecureDNS.get_ip_from_cache(domain)
+        if ip is not None:
+            ip = ip.replace("'", "")
+            ip = ip.replace("[", "")
+            ip = ip.replace("]", "")
+            ip = ip.replace(" ", "")
+            return ip.split(",")
+
+        adresses_ipv4 = []
         adresses = DNSSEC.resolve(domain)
         if adresses is None:
             return None
-        adresses_ipv4 = []
+
         for addr in adresses:
             if "." in addr:
                 adresses_ipv4.append(addr)
 
-        #print(adresses_ipv4)
+        SecureDNS.add_url_to_cache(url=domain, ttl=100, ip=adresses_ipv4)
         return adresses_ipv4
 
     @staticmethod

@@ -16,6 +16,7 @@
 from . import downloader
 from webui.models import HostSources
 import os
+from django.db import IntegrityError, transaction
 
 class HostsSourcesUtils:
     links = []
@@ -29,9 +30,10 @@ class HostsSourcesUtils:
         HostsSourcesUtils.links.append("http://sysctl.org/cameleon/hosts")
         HostsSourcesUtils.links.append("http://someonewhocares.org/hosts/hosts")
 
-        for link in HostsSourcesUtils.links:
-            if not HostSources.objects.filter(url=link).exists():
-                HostSources.objects.create(url=link)
+        with transaction.atomic():
+            for link in HostsSourcesUtils.links:
+                if not HostSources.objects.filter(url=link).exists():
+                    HostSources.objects.create(url=link)
 
     @staticmethod
     def get_number_of_links():

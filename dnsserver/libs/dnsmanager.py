@@ -149,8 +149,8 @@ class DNSSEC():
 
 
 class SecureDNS(object):
-
-    def prepare_hostname(self, hostname: str):
+    @staticmethod
+    def prepare_hostname(hostname: str):
         '''verify the hostname is well-formed'''
         hostname = hostname.rstrip('.')  # strip trailing dot if present
 
@@ -167,14 +167,12 @@ class SecureDNS(object):
 
     @staticmethod
     def add_url_to_cache(url: str, ip: str, ttl: int):
-        hm = hosts_manager.HostsManager()
-        hm.add_site(url=url, ip=ip, ttl=ttl)
+        hosts_manager.HostsManager.add_site(url=url, ip=ip, ttl=ttl)
         print("add url to cache")
 
     @staticmethod
     def get_ip_from_cache(hostname: str):
-        hm = hosts_manager.HostsManager()
-        return hm.get_ip(hostname)
+        return hosts_manager.HostsManager.get_ip(hostname)
 
     @staticmethod
     def generate_padding():
@@ -202,7 +200,7 @@ class SecureDNSCloudflare(SecureDNS):
             return [ip]
 
         connection.create_connection = patched_create_connection
-        hostname = self.prepare_hostname(hostname)
+        hostname = SecureDNS.prepare_hostname(hostname)
         self.params.update({'name': hostname})
 
         r = requests.get(self.url, params=self.params)
@@ -232,7 +230,7 @@ class SecureDNSCloudflare(SecureDNS):
         hostname_orig = hostname
 
         connection.create_connection = patched_create_connection
-        hostname = self.prepare_hostname(hostname)
+        hostname = SecureDNS.prepare_hostname(hostname)
         self.params.update({'name': hostname})
 
         r = requests.get(self.url, params=self.params)

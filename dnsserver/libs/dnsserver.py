@@ -96,16 +96,15 @@ class Record:
 class Resolver(ProxyResolver):
     def __init__(self, upstream):
         super().__init__(upstream, 53, 5)
+        self.cdns = dnsmanager.SecureDNSCloudflare()
+        self.gdns = dnsmanager.SecureDNSGoogle()
 
     def resolve(self, request, handler):
         domain = str(request.q.qname)
-
-        cdns = dnsmanager.SecureDNSCloudflare()
-        ip = cdns.resolveIPV4(domain)
+        ip = self.cdns.resolveIPV4(domain)
         # no response in cache and from cloudflare, try google dns
         if ip is None:
-            gdns = dnsmanager.SecureDNSGoogle()
-            ip = gdns.resolve(domain)
+            ip = self.gdns.resolve(domain)
 
         type_name = QTYPE[request.q.qtype]
 
@@ -122,7 +121,7 @@ class Resolver(ProxyResolver):
         d.add_answer(RR(domain, QTYPE.A, ttl=60, rdata=a))
 
         # resolve using normal DNS
-        ret = super().resolve(request, handler)
+        # ret = super().resolve(request, handler)
 
         # return generated answer
         return d

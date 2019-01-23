@@ -1,0 +1,19 @@
+name: pyDNSHelper
+version: '0.1.0'
+summary: DNS sever focused on security with web ui.
+description: |
+    DNS sever focused on security with web ui.
+
+grade: stable
+confinement: strict
+
+apps: 
+  pydnshelper:
+    command: dnsserver/manage.py runserver
+    plugs:
+      - network
+
+parts:
+  pydnshelper:
+    plugin: python
+    source: https://github.com/arturfog/pydnsHelper.git

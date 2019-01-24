@@ -63,7 +63,7 @@ class HostSourcesAdmin(admin.ModelAdmin):
 
 
 class HostAdmin(admin.ModelAdmin):
-    list_display = ('url', 'ip', 'ttl')
+    list_display = ('url', 'ip', 'ttl', 'hits')
     #list_filter = ('url', 'ttl')
     search_fields = ('url', )
 

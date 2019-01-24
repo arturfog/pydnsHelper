@@ -133,6 +133,7 @@ def handle_sig(signum, frame):
 
 
 class SecureDNSServer:
+    static_udp_server = None
     @staticmethod
     def start():
         #signal.signal(signal.SIGTERM, handle_sig)
@@ -140,11 +141,11 @@ class SecureDNSServer:
         port = int(os.getenv('PORT', 5053))
         upstream = os.getenv('UPSTREAM', '8.8.8.8')
         resolver = Resolver(upstream)
-        udp_server = DNSServer(resolver, port=port)
+        static_udp_server = DNSServer(resolver, port=port)
         tcp_server = DNSServer(resolver, port=port, tcp=True)
 
         logger.info('starting DNS server on port %d, upstream DNS server "%s"', port, upstream)
-        udp_server.start_thread()
+        static_udp_server.start_thread()
         tcp_server.start_thread()
 
         try:
@@ -153,3 +154,8 @@ class SecureDNSServer:
         except KeyboardInterrupt:
             pass
 
+    def stop():
+        pass
+
+    def isRunning():
+        return static_udp_server.isAlive()

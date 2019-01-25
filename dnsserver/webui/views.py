@@ -51,3 +51,11 @@ def about(request):
         'num_hosts': num_hosts,
     }
     return render(request, 'about.html', context=context)
+#####################################################################################
+def hosts(request):
+    """View function for home page of site."""
+    num_hosts = Host.objects.all().count()
+    context = {
+        'num_hosts': num_hosts,
+    }
+    return render(request, 'hosts.html', context=context)

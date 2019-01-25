@@ -9,4 +9,5 @@ urlpatterns = [
     path('status', views.status, name='status'),
     path('logs', views.logs, name='logs'),
     path('about', views.about, name='about'),
+    path('hostsmgr', views.hosts, name='hostsmgr')
 ]

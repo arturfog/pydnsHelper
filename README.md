@@ -3,9 +3,9 @@
 | ------- | ---------------------------------------------- |
 | Gitter | [![Gitter](https://badges.gitter.im/arturfog/pydnsHelper.svg)](https://gitter.im/arturfog/pydnsHelper?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge) |
 
-![Main Window](https://github.com/arturfog/pydnsHelper/raw/master/assets/app_main.png)
-
 Python DNS server focused on security, supporting DNSSEC and DNS over SSL (can automatically block ads and malicious websites)
+
+![Main Window](https://github.com/arturfog/pydnsHelper/raw/master/assets/app_main.png)
 
 ## Build
 
@@ -15,11 +15,25 @@ Python DNS server focused on security, supporting DNSSEC and DNS over SSL (can a
 ```sh
 # 1. Setup virtualenv
 ./install.sh
+
+# 2. install requirements
+
+pip install -r requirements.txt
+
+# 3. Start server
+
+./manage.py runserver
 ```
 
 ## Installation
 
 ![ubuntu](https://github.com/arturfog/qts3browser/raw/master/assets/64_ubuntu_icon.png)![fedora](https://github.com/arturfog/qts3browser/raw/master/assets/64_fedora_icon.png)![arch](https://github.com/arturfog/qts3browser/raw/master/assets/64_arch_icon.png)![mint](https://github.com/arturfog/qts3browser/raw/master/assets/64_mint_icon.png)![rpi](https://github.com/arturfog/qts3browser/raw/master/assets/64_rpi_icon.png)
+
+```sh
+# note: application is still under active development (it will be soon released in experimental 'edge' channel)
+
+snap install --edge pydnshelper
+```
 
 # Support this project
 - Star GitHub repository :star:

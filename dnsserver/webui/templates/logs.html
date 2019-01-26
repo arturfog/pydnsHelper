@@ -51,21 +51,21 @@
               <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
                 <thead>
                   <tr>
-                    <th>URL</th>
+                    <th>Message</th>
                     <th>Last updated</th>
                   </tr>
                 </thead>
                 <tfoot>
                   <tr>
-                    <th>Host</th>
+                    <th>Message</th>
                     <th>Last updated</th>
                   </tr>
                 </tfoot>
                 <tbody>
                  {% for log in logs %}
                   <tr>
-                    <td>{{ source.msg }}</td>
-                    <td>{{ source.timestamp }}</td>
+                    <td>{{ log.msg }}</td>
+                    <td>{{ log.timestamp }}</td>
                   </tr>
                   {% endfor %}
                 </tbody>

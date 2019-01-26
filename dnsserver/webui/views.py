@@ -28,6 +28,14 @@ def genhosts(request):
     hm.generate_host_file("/tmp/hosts.txt")
     return index(request)
 #####################################################################################
+def isServerRunning(request):
+    isRunning = SecureDNSServer.isRunning()
+    return HttpResponse(str(isRunning))
+#####################################################################################
+def isTTLRunning(request):
+    isRunning = SecureDNSServer.isRunning()
+    return HttpResponse(str(isRunning))
+#####################################################################################
 @login_required
 def startttl(request):
     hm = HostsManager()

@@ -4,6 +4,7 @@ from django.urls import include, path
 
 from webui.models import Host
 from webui.models import HostSources
+from webui.models import Logs
 from libs.hosts_sources import HostsSourcesUtils
 from libs.hosts_manager import HostsManager
 from libs.dnsserver import SecureDNSServer
@@ -67,7 +68,13 @@ class HostAdmin(admin.ModelAdmin):
     #list_filter = ('url', 'ttl')
     search_fields = ('url', )
 
+class LogsAdmin(admin.ModelAdmin):
+    list_display = ('msg', 'timestamp')
+    #list_filter = ('url', 'ttl')
+    search_fields = ('msg', )
+
 
 admin.site.register(Host, HostAdmin)
 admin.site.register(HostSources, HostSourcesAdmin)
+admin.site.register(Logs, LogsAdmin)
 #admin.site.add_action(HostsSourcesUtils.download_hosts)

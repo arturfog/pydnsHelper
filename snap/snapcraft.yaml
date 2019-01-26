@@ -7,14 +7,19 @@ description: |
 grade: stable
 confinement: strict
 
-apps: 
-  pydnshelper:
-    command: dnsserver/manage.py runserver
-    plugs:
-      - network
+services:
+  mywebserver:
+    description: "A webserver in python"
+    start: python bin/manage.py runserver 0.0.0.0:8090
 
 parts:
   pydnshelper:
     plugin: python
+    source: .
     python-version: python3
-    source: https://github.com/arturfog/pydnsHelper.git
+    requirements: ./requirements.txt
+
+  dnserver:
+    plugin: copy
+    files:
+      ./dnsserver: bin

@@ -1,6 +1,7 @@
 # pydnsHelper
 | Service | Status                                         |                                                                                 
 | ------- | ---------------------------------------------- |
+| Snapcraft   | [![Snap Status](https://build.snapcraft.io/badge/arturfog/pydnsHelper.svg)](https://build.snapcraft.io/user/arturfog/pydnsHelper) |
 | Gitter | [![Gitter](https://badges.gitter.im/arturfog/pydnsHelper.svg)](https://gitter.im/arturfog/pydnsHelper?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge) |
 
 Python DNS server focused on security, supporting DNSSEC and DNS over SSL (can automatically block ads and malicious websites)
@@ -16,12 +17,13 @@ Python DNS server focused on security, supporting DNSSEC and DNS over SSL (can a
 # 1. Setup virtualenv
 ./install.sh
 
-# 2. install requirements
+# 2. activate virtualenv
+source venv/bin/activate
 
+# 3. install requirements
 pip install -r requirements.txt
 
-# 3. Start server
-
+# 4. Start server
 ./manage.py runserver
 ```
 

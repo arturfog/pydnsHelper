@@ -26,4 +26,52 @@
             </div>
           </div>
     </div>
+
+
+    <!-- Area Chart Example-->
+    <div class="card mb-3">
+      <div class="card-header">
+        <i class="fas fa-chart-area"></i>
+        Actions</div>
+      <div class="card-body">
+        <button type="button" class="btn btn-outline btn-primary btn-lg">Download hosts files</button>
+        <button type="button" class="btn btn-outline btn-primary btn-lg">Import downloaded hosts file</button>
+        <button type="button" class="btn btn-outline btn-primary btn-lg">Generate hosts file</button>
+      </div>
+      <div class="card-footer small text-muted">Updated yesterday at 11:59 PM</div>
+    </div>
+
+    <!-- DataTables Example -->
+    <div class="card mb-3">
+      <div class="card-header">
+        <i class="fas fa-table"></i>
+        Hosts sources</div>
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+            <thead>
+              <tr>
+                <th>URL</th>
+                <th>Last updated</th>
+              </tr>
+            </thead>
+            <tfoot>
+              <tr>
+                <th>Host</th>
+                <th>Last updated</th>
+              </tr>
+            </tfoot>
+            <tbody>
+             {% for source in sources %}
+              <tr>
+                <td>{{ source.url }}</td>
+                <td>{{ source.last_updated }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card-footer small text-muted">Updated yesterday at 11:59 PM</div>
+    </div>
 {% endblock %}

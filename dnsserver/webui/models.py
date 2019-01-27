@@ -10,12 +10,11 @@ class Host(models.Model):
     ttl = models.IntegerField(help_text='TTL', null=False)
     hits = models.IntegerField(help_text='Hits', null=True)
     last_access = models.DateTimeField(null=True)
-    comment = models.CharField(max_length=250, help_text='Comment')
+    comment = models.CharField(max_length=250, help_text='Comment', null=True)
 
     def __str__(self):
         """String for representing the Model object."""
         return self.url
-
 
 class HostSources(models.Model):
     id = models.AutoField(primary_key=True)
@@ -26,9 +25,10 @@ class HostSources(models.Model):
         """String for representing the Model object."""
         return self.url
 
-
 class Traffic(models.Model):
     id = models.AutoField(primary_key=True)
+    hits = models.IntegerField(help_text='Hits', null=True)
+    date = models.DateTimeField(null=True)
 
 class Logs(models.Model):
     id = models.AutoField(primary_key=True)

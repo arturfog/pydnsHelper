@@ -141,11 +141,11 @@ class SecureDNSServer:
         port = int(os.getenv('PORT', 5053))
         upstream = os.getenv('UPSTREAM', '8.8.8.8')
         resolver = Resolver(upstream)
-        static_udp_server = DNSServer(resolver, port=port)
+        SecureDNSServer.static_udp_server = DNSServer(resolver, port=port)
         tcp_server = DNSServer(resolver, port=port, tcp=True)
 
         logger.info('starting DNS server on port %d, upstream DNS server "%s"', port, upstream)
-        static_udp_server.start_thread()
+        SecureDNSServer.static_udp_server.start_thread()
         tcp_server.start_thread()
 
         try:
@@ -158,4 +158,6 @@ class SecureDNSServer:
         pass
 
     def isRunning():
-        return static_udp_server.isAlive()
+        if SecureDNSServer.static_udp_server is None:
+            return False
+        return SecureDNSServer.static_udp_server.isAlive()

@@ -51,9 +51,9 @@ def startttl(request):
 #####################################################################################
 def status(request):
     """View function for home page of site."""
-    num_hosts = Host.objects.all().count()
     context = {
-        'num_hosts': num_hosts,
+        'server_status': SecureDNSServer.isRunning(),
+        'ttl_status': SecureDNSServer.isRunning()
     }
     return render(request, 'status.html', context=context)
 #####################################################################################
@@ -94,6 +94,7 @@ def import_hosts(request):
     hm.import_host_files("/tmp/hosts/")
     return HttpResponse("done")
 #####################################################################################
+@login_required
 def start_server(request):
     SecureDNSServer.start()
     return HttpResponse("done")

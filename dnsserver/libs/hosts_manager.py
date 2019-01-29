@@ -19,8 +19,10 @@ from threading import Thread
 from webui.models import Host
 from django.db import IntegrityError, transaction
 
+from webui.models import Logs
 
 class HostsManager:
+    ttlThreadRunning = False
     def __init__(self):
         self.eng = None
         self.conn = None
@@ -97,8 +99,14 @@ class HostsManager:
         self.threads.append(Thread(target=self.monitor_ttl))
         self.threads[0].start()
 
+    @staticmethod
+    def isTTLThreadRunning():
+        return HostsManager.ttlThreadRunning
+
     def monitor_ttl(self):
-        print("Monitor started ...")
+        msg = 'Monitor started ...'
+        Logs.objects.create(msg=msg)
+        HostsManager.ttlThreadRunning = True
         while self.do_monitor_ttl:
             # select all non blocked urls
             query = Host.objects.order_by('ttl').filter(ttl__lt=999).all()

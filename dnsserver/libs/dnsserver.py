@@ -28,16 +28,9 @@ from dnslib import DNSLabel, QTYPE, RR, dns
 from dnslib.proxy import ProxyResolver
 from dnslib.server import DNSServer
 
+from webui.models import Logs
 
 SERIAL_NO = int((datetime.utcnow() - datetime(1970, 1, 1)).total_seconds())
-
-handler = logging.StreamHandler()
-handler.setLevel(logging.INFO)
-handler.setFormatter(logging.Formatter('%(asctime)s: %(message)s', datefmt='%H:%M:%S'))
-
-logger = logging.getLogger(__name__)
-logger.addHandler(handler)
-logger.setLevel(logging.INFO)
 
 TYPE_LOOKUP = {
     'A': (dns.A, QTYPE.A),
@@ -128,7 +121,8 @@ class Resolver(ProxyResolver):
 
 
 def handle_sig(signum, frame):
-    logger.info('pid=%d, got signal: %s, stopping...', os.getpid(), signal.Signals(signum).name)
+    msg = 'pid=%d, got signal: %s, stopping...'.format(os.getpid(), signal.Signals(signum).name)
+    Logs.objects.create(msg=msg)
     exit(0)
 
 
@@ -144,12 +138,14 @@ class SecureDNSServer:
         SecureDNSServer.static_udp_server = DNSServer(resolver, port=port)
         tcp_server = DNSServer(resolver, port=port, tcp=True)
 
-        logger.info('starting DNS server on port %d, upstream DNS server "%s"', port, upstream)
+        msg = 'starting DNS server on port {}, upstream DNS server {}'.format(port, upstream)
+        Logs.objects.create(msg=msg)
+
         SecureDNSServer.static_udp_server.start_thread()
         tcp_server.start_thread()
 
         try:
-            while udp_server.isAlive():
+            while SecureDNSServer.static_udp_server.isAlive():
                 sleep(1)
         except KeyboardInterrupt:
             pass

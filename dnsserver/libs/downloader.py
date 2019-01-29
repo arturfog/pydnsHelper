@@ -19,6 +19,8 @@ from enum import Enum
 import os
 from threading import Thread
 
+from webui.models import Logs
+
 # Test file with not even number of bytes:
 # https://ftp.gnu.org/pub/gnu/bash/bash-2.02.1.tar.gz
 
@@ -113,8 +115,8 @@ class HTTPDownloader:
 
     def dl(self, start: int, end: int):
         with open(self.file_path, "w+b") as file:
-            print("Downloading %s" % self.file_path + " s:" + str(start) + " e: " + str(end))
-
+            log = "Downloading %s" % self.file_path + " s:" + str(start) + " e: " + str(end)
+            Logs.objects.create(log)
             # specify the starting and ending of the file
             headers = {'Range': 'bytes=%d-%d' % (start, end)}
             response = requests.get(self.url, headers=headers, stream=True)

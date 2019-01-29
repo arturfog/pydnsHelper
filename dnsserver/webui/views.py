@@ -26,7 +26,7 @@ def index(request):
     }
     return render(request, 'index.html', context=context)
 #####################################################################################
-def genhosts(request):
+def gen_hosts(request):
     hm = HostsManager()
     hm.generate_host_file("/tmp/hosts.txt")
     return index(request)
@@ -44,16 +44,16 @@ def isTTLRunning(request):
     return HttpResponse(str(isRunning))
 #####################################################################################
 @login_required
-def startttl(request):
+def start_ttl(request):
     hm = HostsManager()
     hm.start_ttl_monitoring()
-    return index(request)
+    return status(request)
 #####################################################################################
 def status(request):
     """View function for home page of site."""
     context = {
         'server_status': SecureDNSServer.isRunning(),
-        'ttl_status': SecureDNSServer.isRunning()
+        'ttl_status': HostsManager.isTTLThreadRunning()
     }
     return render(request, 'status.html', context=context)
 #####################################################################################
@@ -97,4 +97,4 @@ def import_hosts(request):
 @login_required
 def start_server(request):
     SecureDNSServer.start()
-    return HttpResponse("done")
+    return status(request)

@@ -21,6 +21,10 @@ from . import hosts_manager
 import getdns
 from urllib3.util import connection
 
+from webui.models import Logs
+from webui.models import Host
+from webui.models import Traffic
+
 __version__ = '0.0.2'
 
 # cloudflare
@@ -180,10 +184,16 @@ class SecureDNS(object):
     @staticmethod
     def add_url_to_cache(url: str, ip: str, ttl: int):
         hosts_manager.HostsManager.add_site(url=url, ip=ip, ttl=ttl)
-        print("add url to cache")
+        msg = 'adding url: {}, with ip: {} to cache'.format(url, ip)
+        Logs.objects.create(msg=msg)
 
     @staticmethod
     def get_ip_from_cache(hostname: str):
+        ip = hosts_manager.HostsManager.get_ip(hostname)
+        if ip is not None:
+            #Host.objects.update()
+            #Traffic.objects.create()
+            pass
         return hosts_manager.HostsManager.get_ip(hostname)
 
     @staticmethod

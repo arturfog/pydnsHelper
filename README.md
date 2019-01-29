@@ -8,6 +8,12 @@ Python DNS server focused on security, supporting DNSSEC and DNS over SSL (can a
 
 ![Main Window](https://github.com/arturfog/pydnsHelper/raw/master/assets/app_main.png)
 
+## Testing
+
+```sh
+dig @localhost google.pl -p 5053
+```
+
 ## Build
 
 ![ubuntu](https://github.com/arturfog/qtS3Browser/raw/master/assets/64_ubuntu_icon.png)

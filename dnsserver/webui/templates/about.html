@@ -3,55 +3,32 @@
 {% block content %}
 <div class="container-fluid">
 
-        <!-- Breadcrumbs-->
-        <ol class="breadcrumb">
-          <li class="breadcrumb-item">
-            <a href="#">Dashboard</a>
-          </li>
-          <li class="breadcrumb-item active">About</li>
-        </ol>
+  <!-- Breadcrumbs-->
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item">
+      <a href="#">Dashboard</a>
+    </li>
+    <li class="breadcrumb-item active">About</li>
+  </ol>
 
-        <!-- Icon Cards-->
-        <div class="row">
-          <div class="col-xl-3 col-sm-6 mb-3">
-            <div class="card text-white bg-primary o-hidden h-100">
-              <div class="card-body">
-                <div class="card-body-icon">
-                  <i class="fas fa-fw fa-list"></i>
-                </div>
-                    <div class="mr-5">About</div>
-              </div>
-              <a class="card-footer text-white clearfix small z-1" href="#">
-              </a>
-            </div>
-          </div>
+  <!-- Area Chart Example-->
+  <div class="card mb-3">
+    <div class="card-header">
+      <i class="fas fa-info"></i>
+      About</div>
+    <div class="card-body">
+      <h4><i class="fab fa-python"></i> pyDNSHelper</h4>
+      <address>
+        <br>
+        <strong class="fas fa-user-tie"> Artur Fogiel</strong>
+        <br><a target="_blank" rel="noopener noreferrer" href="https://github.com/arturfog/pydnsHelper" class="fab fa-github"> https://github.com/arturfog/pydnsHelper</a>
+      </address>
+      <address>
+        <strong>Version</strong>
+        <br>
+        <a>0.1.0</a>
+      </address>
     </div>
-
-            <!-- Area Chart Example-->
-            <div class="card mb-3">
-              <div class="card-header">
-                <i class="fas fa-chart-area"></i>
-                Actions</div>
-              <div class="card-body">
-                  <p>The abbreviation of the word attribute is
-                      <abbr title="attribute">attr</abbr>.</p>
-                  <p>
-                      <abbr title="HyperText Markup Language" class="initialism">HTML</abbr>is an abbreviation for a programming language.</p>
-                  <br>
-                  <h4>Addresses</h4>
-                  <address>
-                      <strong>Twitter, Inc.</strong>
-                      <br>795 Folsom Ave, Suite 600
-                      <br>San Francisco, CA 94107
-                      <br>
-                      <abbr title="Phone">P:</abbr>(123) 456-7890
-                  </address>
-                  <address>
-                      <strong>Full Name</strong>
-                      <br>
-                      <a href="mailto:#">first.last@example.com</a>
-                  </address>
-              </div>
-              <div class="card-footer small text-muted">Updated yesterday at 11:59 PM</div>
-            </div>
+    <div class="card-footer small text-muted"></div>
+</div>
 {% endblock %}

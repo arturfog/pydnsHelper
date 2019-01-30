@@ -8,7 +8,7 @@ class Host(models.Model):
     url = models.CharField(max_length=200, help_text='URL', null=False, unique=True)
     ip = models.CharField(max_length=64, help_text='IP', null=False)
     ttl = models.IntegerField(help_text='TTL', null=False)
-    hits = models.IntegerField(help_text='Hits', null=True)
+    hits = models.IntegerField(help_text='Hits', null=False, default=0)
     last_access = models.DateTimeField(null=True)
     comment = models.CharField(max_length=250, help_text='Comment', null=True)
 
@@ -27,7 +27,7 @@ class HostSources(models.Model):
 
 class Traffic(models.Model):
     id = models.AutoField(primary_key=True)
-    hits = models.IntegerField(help_text='Hits', null=True)
+    hits = models.IntegerField(help_text='Hits', null=False, default=0)
     date = models.DateTimeField(null=True)
 
 class Logs(models.Model):

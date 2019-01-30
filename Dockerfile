@@ -16,7 +16,9 @@ RUN pip install urllib3>=1.24.1
 RUN mkdir /home/root/pyDNSHelper
 ADD ./dnsserver /home/root/pyDNSHelper/
 
-EXPOSE 53/tcp
+# webui
+EXPOSE 8000/tcp
+# dns
 EXPOSE 53/udp
 
 #default password: 'dnsmanager'

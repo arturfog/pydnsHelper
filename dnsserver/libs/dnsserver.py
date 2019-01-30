@@ -144,12 +144,6 @@ class SecureDNSServer:
         SecureDNSServer.static_udp_server.start_thread()
         tcp_server.start_thread()
 
-        try:
-            while SecureDNSServer.static_udp_server.isAlive():
-                sleep(1)
-        except KeyboardInterrupt:
-            pass
-
     def stop():
         pass
 

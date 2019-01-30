@@ -24,6 +24,7 @@ from urllib3.util import connection
 from webui.models import Logs
 from webui.models import Host
 from webui.models import Traffic
+from django.db.models import F
 
 __version__ = '0.0.2'
 
@@ -191,9 +192,10 @@ class SecureDNS(object):
     def get_ip_from_cache(hostname: str):
         ip = hosts_manager.HostsManager.get_ip(hostname)
         if ip is not None:
-            #Host.objects.update()
-            #Traffic.objects.create()
-            pass
+            Host.objects.filter(url = hostname).update(hits = F('hits')+1)
+            Traffic.objects.get_or_create(name = name)
+            Traffic.objects.filter(name = name).update(hits = F('hits')+1)
+
         return hosts_manager.HostsManager.get_ip(hostname)
 
     @staticmethod

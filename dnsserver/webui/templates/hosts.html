@@ -3,75 +3,106 @@
 {% block content %}
 <div class="container-fluid">
 
-        <!-- Breadcrumbs-->
-        <ol class="breadcrumb">
-          <li class="breadcrumb-item">
-            <a href="#">Dashboard</a>
-          </li>
-          <li class="breadcrumb-item active">Hosts</li>
-        </ol>
+  <!-- Breadcrumbs-->
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item">
+      <a href="#">Dashboard</a>
+    </li>
+    <li class="breadcrumb-item active">Hosts</li>
+  </ol>
 
-        <!-- Icon Cards-->
-        <div class="row">
-          <div class="col-xl-3 col-sm-6 mb-3">
-            <div class="card text-white bg-warning o-hidden h-100">
-              <div class="card-body">
-                <div class="card-body-icon">
-                  <i class="fas fa-fw fa-list"></i>
-                </div>
-                    <div class="mr-5">{{ num_hosts }} Hosts entries</div>
-              </div>
-              <a class="card-footer text-white clearfix small z-1" href="#">
-              </a>
-            </div>
+  <!-- Icon Cards-->
+  <div class="row">
+    <div class="col-xl-3 col-sm-6 mb-3">
+      <div class="card text-white bg-warning o-hidden h-100">
+        <div class="card-body">
+          <div class="card-body-icon">
+            <i class="fas fa-fw fa-list"></i>
           </div>
-    </div>
-
-
-    <!-- Area Chart Example-->
-    <div class="card mb-3">
-      <div class="card-header">
-        <i class="fas fa-chart-area"></i>
-        Actions</div>
-      <div class="card-body">
-        <button type="button" class="btn btn-outline btn-primary btn-lg">Download hosts files</button>
-        <button type="button" class="btn btn-outline btn-primary btn-lg">Import downloaded hosts file</button>
-        <button type="button" class="btn btn-outline btn-primary btn-lg">Generate hosts file</button>
+          <div class="mr-5">{{ num_hosts }} Hosts entries</div>
+        </div>
+        <a class="card-footer text-white clearfix small z-1" href="#">
+        </a>
       </div>
-      <div class="card-footer small text-muted">Updated yesterday at 11:59 PM</div>
     </div>
+  </div>
 
-    <!-- DataTables Example -->
-    <div class="card mb-3">
-      <div class="card-header">
-        <i class="fas fa-table"></i>
-        Hosts sources</div>
-      <div class="card-body">
-        <div class="table-responsive">
-          <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
-            <thead>
-              <tr>
-                <th>URL</th>
-                <th>Last updated</th>
-              </tr>
-            </thead>
-            <tfoot>
-              <tr>
-                <th>Host</th>
-                <th>Last updated</th>
-              </tr>
-            </tfoot>
-            <tbody>
-             {% for source in sources %}
-              <tr>
-                <td>{{ source.url }}</td>
-                <td>{{ source.last_updated }}</td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
+  <div class="modal fade" role="dialog" id="pwAlert">
+    <div class="modal-dialog">
+      <!-- Modal content-->
+      <div class="modal-content">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal">&times;</button>
+          <h4 class="modal-title"></h4>
+        </div>
+        <div class="modal-body">
+          <strong>Please wait ...</strong>
         </div>
       </div>
-      <div class="card-footer small text-muted">Updated yesterday at 11:59 PM</div>
     </div>
-{% endblock %}
+  </div>
+
+  <!-- Area Chart Example-->
+  <div class="card mb-3">
+    <div class="card-header">
+      <i class="fas fa-power-off"></i>
+      Actions</div>
+    <div class="card-body">
+      <button onclick="js_dlHosts()" type="button" class="btn btn-outline btn-success btn-lg"><i class="fas fa-download"></i> Download hosts files</button>
+      <button onclick="js_importHosts()" type="button" class="btn btn-outline btn-info btn-lg"><i class="fas fa-file-import"></i> Import downloaded
+        hosts file</button>
+      <button type="button" class="btn btn-outline btn-default btn-lg"><i class="fas fa-file-export"></i> Generate hosts file</button>
+    </div>
+    <div class="card-footer small text-muted"></div>
+  </div>
+
+  <!-- DataTables Example -->
+  <div class="card mb-3">
+    <div class="card-header">
+      <i class="fas fa-table"></i>
+      Hosts sources</div>
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+          <thead>
+            <tr>
+              <th>URL</th>
+              <th>Last updated</th>
+            </tr>
+          </thead>
+          <tfoot>
+            <tr>
+              <th>Host</th>
+              <th>Last updated</th>
+            </tr>
+          </tfoot>
+          <tbody>
+            {% for source in sources %}
+            <tr>
+              <td>{{ source.url }}</td>
+              <td>{{ source.last_updated }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card-footer small text-muted"></div>
+  </div>
+
+  <script type="text/javascript">
+    function js_dlHosts() {
+      $.get("start_ttl", function (data) {
+        $('#pwAlert').modal()
+        window.setTimeout("location.reload()", 3000)
+      });
+    }
+
+    function js_importHosts() {
+      $.get("start_server", function (data) {
+        $('#pwAlert').modal()
+        window.setTimeout("location.reload()", 3000)
+      });
+    }
+  </script>
+  {% endblock %}

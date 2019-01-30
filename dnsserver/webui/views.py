@@ -1,5 +1,6 @@
 from django.shortcuts import render
 from django.http import Http404
+from django.http import HttpResponse
 from django.contrib.auth.decorators import login_required
 
 from libs.hosts_sources import HostsSourcesUtils
@@ -10,6 +11,9 @@ from webui.models import Host
 from webui.models import HostSources
 from webui.models import Logs
 from webui.models import Traffic
+
+from django.shortcuts import redirect
+
 #####################################################################################
 def index(request):
     """View function for home page of site."""
@@ -47,7 +51,7 @@ def isTTLRunning(request):
 def start_ttl(request):
     hm = HostsManager()
     hm.start_ttl_monitoring()
-    return status(request)
+    return HttpResponse("done")
 #####################################################################################
 def status(request):
     """View function for home page of site."""
@@ -97,4 +101,4 @@ def import_hosts(request):
 @login_required
 def start_server(request):
     SecureDNSServer.start()
-    return status(request)
+    return HttpResponse("done")

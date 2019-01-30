@@ -7,10 +7,15 @@ description: |
 grade: stable
 confinement: strict
 
-services:
-  mywebserver:
+apps:
+  pydnshelper:
+    daemon: simple
+    plugs: [network-bind]
+    environment:
+            LC_ALL: C.UTF-8
+            LANG: C.UTF-8
     description: "A webserver in python"
-    start: python bin/manage.py runserver 0.0.0.0:8090
+    command: python bin/manage.py runserver 0.0.0.0:8090
 
 parts:
   pydnshelper:

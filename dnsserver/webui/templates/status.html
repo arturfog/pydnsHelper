@@ -100,15 +100,15 @@
 
       <script type="text/javascript">
         function js_startTTL() {
+          $('#pwAlert').modal()
           $.get("start_ttl", function (data) {
-            $('#pwAlert').modal()
             window.setTimeout("location.reload()", 3000)
           });
         }
 
         function js_startDNS() {
+          $('#pwAlert').modal()
           $.get("start_server", function (data) {
-             $('#pwAlert').modal()
              window.setTimeout("location.reload()", 3000)
           });
         }

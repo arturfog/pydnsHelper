@@ -29,7 +29,17 @@ source venv/bin/activate
 # 3. install requirements
 pip install -r requirements.txt
 
-# 4. Start server
+# 4.
+./manage.py makemigrations
+
+# 5. create tables
+./manage.py migrate --run-syncdb
+
+# 6. create admin account
+
+./manage.py createsuperuser
+
+# 6. Start server
 ./manage.py runserver
 ```
 

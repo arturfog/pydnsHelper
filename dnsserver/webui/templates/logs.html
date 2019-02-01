@@ -50,9 +50,9 @@
       <i class="fas fa-power-off"></i>
       Actions</div>
     <div class="card-body">
-      <button type="button" class="btn btn-outline bg-warning btn-lg"><i class="fas fa-file-export"></i> Export logs to
-        file</button>
-      <button type="button" class="btn btn-outline text-white bg-danger btn-lg"><i class="fas fa-trash-alt"></i> Clear
+      <button type="button" class="btn btn-outline bg-warning btn-lg"><a  href="export_logs"><i class="fas fa-file-export"></i> Export logs to
+        file</a></button>
+      <button type="button" class="btn btn-outline text-white bg-danger btn-lg" onclick="js_clearLogs()"><i class="fas fa-trash-alt"></i> Clear
         logs</button>
     </div>
     <div class="card-footer small text-muted">Updated yesterday at 11:59 PM</div>
@@ -97,13 +97,6 @@
       $.get("clear_logs", function (data) {
         $('#pwAlert').modal()
         window.setTimeout("location.reload()", 3000)
-      });
-    }
-
-    function js_exportLogs() {
-      $.get("export_logs", function (data) {
-         $('#pwAlert').modal()
-         window.setTimeout("location.reload()", 3000)
       });
     }
   </script>

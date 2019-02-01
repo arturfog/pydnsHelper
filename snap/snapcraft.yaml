@@ -1,11 +1,9 @@
 name: pydnshelper
 version: '0.1.0'
-summary: DNS sever focused on security with web ui.
-description: |
-    DNS sever focused on security with web ui.
-
-grade: stable
-confinement: strict
+summary: DNS server focused on security with web ui.
+description: DNS server focused on security with web ui.
+grade: 'stable'
+confinement: 'strict'
 
 apps:
   pydnshelper:

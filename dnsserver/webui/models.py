@@ -34,3 +34,6 @@ class Logs(models.Model):
     id = models.AutoField(primary_key=True)
     msg = models.TextField(max_length=512, help_text='msg', null=False)
     timestamp = models.DateTimeField(auto_now_add=True, null=False)
+
+    def __str__(self):
+        return "Log: %s %s" % (self.msg, self.timestamp)

@@ -115,8 +115,8 @@ class HTTPDownloader:
 
     def dl(self, start: int, end: int):
         with open(self.file_path, "w+b") as file:
-            log = "Downloading %s" % self.file_path + " s:" + str(start) + " e: " + str(end)
-            Logs.objects.create(log)
+            msg = "Downloading %s" % self.file_path + " s:" + str(start) + " e: " + str(end)
+            Logs.objects.create(msg = msg)
             # specify the starting and ending of the file
             headers = {'Range': 'bytes=%d-%d' % (start, end)}
             response = requests.get(self.url, headers=headers, stream=True)

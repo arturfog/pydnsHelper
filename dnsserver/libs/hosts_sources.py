@@ -44,8 +44,8 @@ class HostsSourcesUtils:
         if HostsSourcesUtils.get_number_of_links() > 0:
             all_entries = HostSources.objects.all()
             dl = downloader.HTTPDownloader()
+            if not os.path.isdir("/tmp/hosts/"):
+                os.mkdir("/tmp/hosts")
             for link in all_entries:
                 print(link.url)
-                if not os.path.isdir("/tmp/hosts/"):
-                    os.mkdir("/tmp/hosts")
                 dl.download(link.url, "/tmp/hosts/hosts" + str(link.id))

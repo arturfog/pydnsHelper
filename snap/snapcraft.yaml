@@ -12,7 +12,6 @@ apps:
     environment:
             LC_ALL: C.UTF-8
             LANG: C.UTF-8
-    description: "A webserver in python"
     command: python bin/manage.py runserver 0.0.0.0:8090
 
 parts:

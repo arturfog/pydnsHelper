@@ -20,6 +20,9 @@ parts:
     source: .
     python-version: python3
     requirements: ./requirements.txt
+    stage-packages:
+       - libgetdns10
+       - libgetdns-dev
 
   dnserver:
     plugin: copy

@@ -36,7 +36,6 @@ pip install -r requirements.txt
 ./manage.py migrate --run-syncdb
 
 # 6. create admin account
-
 ./manage.py createsuperuser
 
 # 6. Start server

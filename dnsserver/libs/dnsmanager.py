@@ -192,9 +192,10 @@ class SecureDNS(object):
     def get_ip_from_cache(hostname: str):
         ip = hosts_manager.HostsManager.get_ip(hostname)
         if ip is not None:
+            import datetime
             Host.objects.filter(url = hostname).update(hits = F('hits')+1)
-            Traffic.objects.get_or_create(name = name)
-            Traffic.objects.filter(name = name).update(hits = F('hits')+1)
+            Traffic.objects.get_or_create(date = datetime.date.today())
+            Traffic.objects.filter(date = datetime.date.today()).update(hits = F('hits')+1)
 
         return hosts_manager.HostsManager.get_ip(hostname)
 

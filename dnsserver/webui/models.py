@@ -28,7 +28,7 @@ class HostSources(models.Model):
 class Traffic(models.Model):
     id = models.AutoField(primary_key=True)
     hits = models.IntegerField(help_text='Hits', null=False, default=0)
-    date = models.DateTimeField(null=True)
+    date = models.DateField(null=False)
 
 class Logs(models.Model):
     id = models.AutoField(primary_key=True)

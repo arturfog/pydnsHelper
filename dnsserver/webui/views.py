@@ -27,7 +27,7 @@ def index(request):
     traffic = None
     if db_table_exists("webui_host"):
         num_hosts = Host.objects.all().count()
-        hosts = Host.objects.filter(hits__gt=0).order_by('hits')
+        hosts = Host.objects.filter(hits__gt=1).order_by('-hits')
         num_logs = Logs.objects.all().count()
         traffic = Traffic.objects.all()
 

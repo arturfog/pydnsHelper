@@ -26,6 +26,11 @@ from webui.models import Host
 from webui.models import Traffic
 from django.db.models import F
 
+from multiprocessing import Lock
+from concurrent.futures import ThreadPoolExecutor
+import datetime
+
+
 __version__ = '0.0.2'
 
 # cloudflare
@@ -73,7 +78,7 @@ def patched_create_connection(address, *args, **kwargs):
     hostname = DNSSEC.resolveIPv4(host) # your_dns_resolver(host)
 
     print("host: " + host)
-    if len(hostname) > 1:
+    if hostname is not None and len(hostname) > 1:
         hostname = hostname[0]
     return _orig_create_connection((hostname, port), *args, **kwargs)
 
@@ -166,6 +171,9 @@ class DNSSEC():
 
 
 class SecureDNS(object):
+    lock = Lock()
+    executor = ThreadPoolExecutor(max_workers=10)
+
     @staticmethod
     def prepare_hostname(hostname: str):
         '''verify the hostname is well-formed'''
@@ -183,19 +191,42 @@ class SecureDNS(object):
             raise InvalidHostName
 
     @staticmethod
-    def add_url_to_cache(url: str, ip: str, ttl: int):
+    def add_url_to_cache_func(url: str, ip: str, ttl: int):
+        SecureDNS.lock.acquire()
         hosts_manager.HostsManager.add_site(url=url, ip=ip, ttl=ttl)
         msg = 'adding url: {}, with ip: {} to cache'.format(url, ip)
         Logs.objects.create(msg=msg)
+        SecureDNS.lock.release()
+
+    @staticmethod
+    def add_url_to_cache(url: str, ip: str, ttl: int):
+        print("Adding: " + url + " to cache")
+        SecureDNS.executor.submit(SecureDNS.add_url_to_cache_func, url, ip, ttl)
+
+    @staticmethod
+    def log_traffic(hostname: str):
+        SecureDNS.lock.acquire()
+        Host.objects.filter(url = hostname).update(hits = F('hits')+1)
+        Traffic.objects.get_or_create(date = datetime.date.today())
+        Traffic.objects.filter(date = datetime.date.today()).update(hits = F('hits')+1)
+        SecureDNS.lock.release()
+
+
+    @staticmethod
+    def get_ip(url: str):
+        instance = Host.objects.filter(url=url).first()
+        if instance:
+            return instance.ip
+        else:
+            return None
 
     @staticmethod
     def get_ip_from_cache(hostname: str):
-        ip = hosts_manager.HostsManager.get_ip(hostname)
+        ip = SecureDNS.get_ip(hostname)
         if ip is not None:
-            import datetime
-            Host.objects.filter(url = hostname).update(hits = F('hits')+1)
-            Traffic.objects.get_or_create(date = datetime.date.today())
-            Traffic.objects.filter(date = datetime.date.today()).update(hits = F('hits')+1)
+            print("Getting ip for: " + hostname + " from cache")
+            SecureDNS.executor.submit(SecureDNS.log_traffic, hostname)
+            return ip
 
         return hosts_manager.HostsManager.get_ip(hostname)
 
@@ -220,10 +251,12 @@ class SecureDNSCloudflare(SecureDNS):
 
     def resolveIPV6(self, hostname: str):
         '''return ip address(es) of hostname'''
+        print("############## RESOLVE IPV6")
         ip = SecureDNS.get_ip_from_cache(hostname)
         if ip is not None:
             return [ip]
 
+        print(">>>>>>>> IP FOR " + hostname + " NOT IN CACHE >>>>>>>>>>")
         connection.create_connection = patched_create_connection
         hostname = SecureDNS.prepare_hostname(hostname)
         self.params.update({'name': hostname})
@@ -252,6 +285,7 @@ class SecureDNSCloudflare(SecureDNS):
         if ip is not None:
             return [ip]
 
+        print(">>>>>>>> IP FOR " + hostname + " NOT IN CACHE >>>>>>>>>>")
         hostname_orig = hostname
 
         connection.create_connection = patched_create_connection

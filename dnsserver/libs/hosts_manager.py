@@ -90,10 +90,12 @@ class HostsManager:
             if HostsManager.get_ip(url) is not None:
                 return
 
-        if columns_nr > 2:
-            HostsManager.add_site(url=url, comment=' '.join(columns[2:columns_nr]), ttl=999)
-        elif columns_nr > 1:
-            HostsManager.add_site(url, ttl=999)
+        if url is not None:
+            url = url + "."
+            if columns_nr > 2:
+                HostsManager.add_site(url=url, comment=' '.join(columns[2:columns_nr]), ttl=999)
+            elif columns_nr > 1:
+                HostsManager.add_site(url, ttl=999)
 
     def start_ttl_monitoring(self):
         self.threads.append(Thread(target=self.monitor_ttl))

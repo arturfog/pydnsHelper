@@ -21,7 +21,7 @@ parts:
     python-version: python3
     requirements: ./requirements.txt
     stage-packages:
-       - libgetdns10
+       - libgetdns1
        - libgetdns-dev
 
   dnserver:

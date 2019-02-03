@@ -33,6 +33,36 @@ pip install -r requirements.txt
 ./first_start.sh
 ```
 
+## Docker
+
+```sh
+# 1. build docker image
+sudo docker build -t arturfog/pydnshelper .
+
+# 2. run image
+sudo docker run -it -p 8000:8000/tcp -p 8000:8000/udp -p 5053:5053/udp arturfog/pydnshelper /bin/bash
+
+# 3. go to pyDNSHelper directory
+cd /pyDNSHelper
+
+# 4. run first_start.sh script (it will created database and admin user)
+./first_start.sh
+
+# 5. verify app is working by going to http://$DOCKER_CONTAINER_IP:8000/webui/
+
+docker container ip can be checked with 'docker inspect $containerID` command
+
+-------------------------------------------------------------------------------------
+
+Next time you want to use pyDNSHelper following steps are needed
+
+# 1. start container 
+sudo docker start CONTAINER_NAME ie. sudo docker start hopeful_hawking
+
+it's also possible to enter shell of the container:
+sudo docker exec -it CONTAINER_NAME bash
+```
+
 ## Installation
 
 ![ubuntu](https://github.com/arturfog/qts3browser/raw/master/assets/64_ubuntu_icon.png)![fedora](https://github.com/arturfog/qts3browser/raw/master/assets/64_fedora_icon.png)![arch](https://github.com/arturfog/qts3browser/raw/master/assets/64_arch_icon.png)![mint](https://github.com/arturfog/qts3browser/raw/master/assets/64_mint_icon.png)![rpi](https://github.com/arturfog/qts3browser/raw/master/assets/64_rpi_icon.png)

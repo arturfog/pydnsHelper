@@ -12,7 +12,7 @@ apps:
     environment:
             LC_ALL: C.UTF-8
             LANG: C.UTF-8
-    command: python bin/manage.py runserver 0.0.0.0:8090
+    command: python bin/manage.py runserver 0.0.0.0:8000
 
 parts:
   pydnshelper:

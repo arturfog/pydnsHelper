@@ -7,5 +7,4 @@ setup(
     author="Artur Fogiel",
     license="GPLv3",
     url="https://github.com/arturfog/pydnsHelper",
-    scripts=['manage.py']
 )

@@ -6,7 +6,8 @@ from django.db import models
 class Host(models.Model):
     id = models.AutoField(primary_key=True)
     url = models.CharField(max_length=200, help_text='URL', null=False, unique=True)
-    ip = models.CharField(max_length=64, help_text='IP', null=False)
+    ipv4 = models.CharField(max_length=64, help_text='IPv4', null=False)
+    ipv6 = models.CharField(max_length=64, help_text='IPv6', null=False)
     ttl = models.IntegerField(help_text='TTL', null=False)
     hits = models.IntegerField(help_text='Hits', null=False, default=0)
     last_access = models.DateTimeField(null=True)

@@ -56,6 +56,9 @@ A = 1
 AAAA = 28
 # DNS status codes
 NOERROR = 0
+FORMAT_ERROR = 1
+SERVER_FAIL = 2
+NX_DOMAIN = 3 # domain does not exists
 
 
 UNRESERVED_CHARS = 'abcdefghijklmnopqrstuvwxyz' \
@@ -296,7 +299,7 @@ class SecureDNSCloudflare(SecureDNS):
         connection.create_connection = _orig_create_connection
         if r.status_code == 200:
             response = r.json()
-            #print(response)
+            print(response)
             if response['Status'] == NOERROR:
                 answers = []
                 for answer in response['Answer']:

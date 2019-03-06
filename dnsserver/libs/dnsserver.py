@@ -93,30 +93,38 @@ class Resolver(ProxyResolver):
         self.gdns = dnsmanager.SecureDNSGoogle()
 
     def resolve(self, request, handler):
+        print("Resolve started")
         domain = str(request.q.qname)
-        ip = self.cdns.resolveIPV4(domain)
-        # no response in cache and from cloudflare, try google dns
-        if ip is None:
-            ip = self.gdns.resolve(domain)
-
+        if "_http._tcp." in domain:
+            domain = domain.replace("_http._tcp.", "")
+        
         type_name = QTYPE[request.q.qtype]
 
-        #print(repr(request.header))
+        print(repr(request.header))
         d = dns.DNSRecord()
         d.header = request.header
         d.header.set_qr(1)
         d.header.set_ra(1)
         d.add_question(dns.DNSQuestion(domain))
 
-        a = dns.A(ip[0])
-        #aaa = dns.AAAA(ip[0])
-
-        d.add_answer(RR(domain, QTYPE.A, ttl=60, rdata=a))
+        ip = None
+        if type_name == 'A':
+            ip = self.cdns.resolveIPV4(domain)
+            a = dns.A(ip[0])
+            d.add_answer(RR(domain, QTYPE.A, ttl=60, rdata=a))
+        if type_name == 'AAAA':
+            ip = self.cdns.resolveIPV6(domain)
+            aaa = dns.AAAA(ip[0])
+            d.add_answer(RR(domain, QTYPE.AAAA, ttl=60, rdata=aaa))
+        # no response in cache and from cloudflare, try google dns
+        if ip is None:
+            ip = self.gdns.resolve(domain)
 
         # resolve using normal DNS
         # ret = super().resolve(request, handler)
 
         # return generated answer
+        print("Resolve end")
         return d
 
 

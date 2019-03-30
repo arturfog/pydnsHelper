@@ -196,6 +196,14 @@ class SecureDNS(object):
     @staticmethod
     def add_url_to_cache_func(url: str, ip: str, ttl: int):
         SecureDNS.lock.acquire()
+        hosts_manager.HostsManager.add_site(url=url, ipv6=ip, ttl=ttl)
+        msg = 'adding url: {}, with ip: {} to cache'.format(url, ip)
+        Logs.objects.create(msg=msg)
+        SecureDNS.lock.release()
+
+    @staticmethod
+    def add_url_to_cache_func6(url: str, ip: str, ttl: int):
+        SecureDNS.lock.acquire()
         hosts_manager.HostsManager.add_site(url=url, ip=ip, ttl=ttl)
         msg = 'adding url: {}, with ip: {} to cache'.format(url, ip)
         Logs.objects.create(msg=msg)
@@ -205,6 +213,11 @@ class SecureDNS(object):
     def add_url_to_cache(url: str, ip: str, ttl: int):
         print("Adding: " + url + " to cache")
         SecureDNS.executor.submit(SecureDNS.add_url_to_cache_func, url, ip, ttl)
+
+    @staticmethod
+    def add_url_to_cache6(url: str, ipv6: str, ttl: int):
+        print("Adding: " + url + " to cache")
+        SecureDNS.executor.submit(SecureDNS.add_url_to_cache_func6, url, ip, ttl)
 
     @staticmethod
     def log_traffic(hostname: str):
@@ -219,7 +232,15 @@ class SecureDNS(object):
     def get_ip(url: str):
         instance = Host.objects.filter(url=url).first()
         if instance:
-            return instance.ip
+            return instance.ipv4
+        else:
+            return None
+
+    @staticmethod
+    def get_ipv6(url: str):
+        instance = Host.objects.filter(url=url).first()
+        if instance:
+            return instance.ipv6
         else:
             return None
 
@@ -232,6 +253,17 @@ class SecureDNS(object):
             return ip
 
         return hosts_manager.HostsManager.get_ip(hostname)
+
+    @staticmethod
+    def get_ipv6_from_cache(hostname: str):
+        ip = SecureDNS.get_ipv6(hostname)
+        if ip is not None and len(ip) > 1:
+            print("Getting ip for: " + hostname + " from cache")
+            SecureDNS.executor.submit(SecureDNS.log_traffic, hostname)
+            return ip
+
+        return hosts_manager.HostsManager.get_ipv6(hostname)
+
 
     @staticmethod
     def generate_padding():
@@ -254,8 +286,8 @@ class SecureDNSCloudflare(SecureDNS):
 
     def resolveIPV6(self, hostname: str):
         '''return ip address(es) of hostname'''
-        print("############## RESOLVE IPV6")
-        ip = SecureDNS.get_ip_from_cache(hostname)
+        print("############## RESOLVE IPV6 " + hostname)
+        ip = SecureDNS.get_ipv6_from_cache(hostname)
         if ip is not None:
             return [ip]
 
@@ -263,6 +295,7 @@ class SecureDNSCloudflare(SecureDNS):
         connection.create_connection = patched_create_connection
         hostname = SecureDNS.prepare_hostname(hostname)
         self.params.update({'name': hostname})
+        self.params.update({'type': 'AAAA'})
 
         r = requests.get(self.url, params=self.params)
         connection.create_connection = _orig_create_connection

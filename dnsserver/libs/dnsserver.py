@@ -114,6 +114,7 @@ class Resolver(ProxyResolver):
             d.add_answer(RR(domain, QTYPE.A, ttl=60, rdata=a))
         if type_name == 'AAAA':
             ip = self.cdns.resolveIPV6(domain)
+            print("ip6: " + repr(ip))
             aaa = dns.AAAA(ip[0])
             d.add_answer(RR(domain, QTYPE.AAAA, ttl=60, rdata=aaa))
         # no response in cache and from cloudflare, try google dns

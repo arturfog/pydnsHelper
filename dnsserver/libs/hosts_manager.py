@@ -56,12 +56,18 @@ class HostsManager:
             return None
 
     @staticmethod
-    def add_site(url: str, comment: str="", ttl: int=60, ip: str='0.0.0.0', ipv6: str='::/0'):
+    def add_site(url: str, comment: str="", ttl: int=60, ip: str='', ipv6: str=''):
         if url == "" or url == "0.0.0.0":
             return
 
         if not Host.objects.filter(url=url).exists():
             Host.objects.create(ipv4=ip, ipv6=ipv6, url=url, ttl=ttl, comment=comment)
+        else:
+            if(ip == ''):
+                Host.objects.filter(url = url).update(ipv6=ipv6)
+            else:
+                Host.objects.filter(url = url).update(ipv4=ip)
+
 
     @staticmethod
     def remove_site(url: str):
@@ -101,9 +107,9 @@ class HostsManager:
         if url is not None:
             url = url + "."
             if columns_nr > 2:
-                HostsManager.add_site(url=url, comment=' '.join(columns[2:columns_nr]), ttl=999)
+                HostsManager.add_site(url=url, comment=' '.join(columns[2:columns_nr]), ttl=999, ipv6='::/0', ip='0.0.0.0')
             elif columns_nr > 1:
-                HostsManager.add_site(url, ttl=999)
+                HostsManager.add_site(url, ttl=999, ipv6='::/0', ip='0.0.0.0')
 
     def start_ttl_monitoring(self):
         self.threads.append(Thread(target=self.monitor_ttl))

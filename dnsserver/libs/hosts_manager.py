@@ -43,7 +43,10 @@ class HostsManager:
     def get_ip(url: str):
         instance = Host.objects.filter(url=url).first()
         if instance:
-            return instance.ipv4
+            ipv4 = instance.ipv4
+            if(len(ipv4) > 7):
+                return instance.ipv4
+            return None
         else:
             return None
 
@@ -51,7 +54,10 @@ class HostsManager:
     def get_ipv6(url: str):
         instance = Host.objects.filter(url=url).first()
         if instance:
-            return instance.ipv6
+            ipv6 = instance.ipv6
+            if(len(ipv6) > 3):
+                return instance.ipv6
+            return None
         else:
             return None
 

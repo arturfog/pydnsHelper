@@ -196,7 +196,7 @@ class SecureDNS(object):
     @staticmethod
     def add_url_to_cache_func(url: str, ip: str, ttl: int):
         SecureDNS.lock.acquire()
-        hosts_manager.HostsManager.add_site(url=url, ipv6=ip, ttl=ttl)
+        hosts_manager.HostsManager.add_site(url=url, ip=ip, ttl=ttl)
         msg = 'adding url: {}, with ip: {} to cache'.format(url, ip)
         Logs.objects.create(msg=msg)
         SecureDNS.lock.release()
@@ -204,7 +204,7 @@ class SecureDNS(object):
     @staticmethod
     def add_url_to_cache_func6(url: str, ip: str, ttl: int):
         SecureDNS.lock.acquire()
-        hosts_manager.HostsManager.add_site(url=url, ip=ip, ttl=ttl)
+        hosts_manager.HostsManager.add_site(url=url, ipv6=ip, ttl=ttl)
         msg = 'adding url: {}, with ip: {} to cache'.format(url, ip)
         Logs.objects.create(msg=msg)
         SecureDNS.lock.release()
@@ -217,7 +217,7 @@ class SecureDNS(object):
     @staticmethod
     def add_url_to_cache6(url: str, ipv6: str, ttl: int):
         print("Adding: " + url + " to cache")
-        SecureDNS.executor.submit(SecureDNS.add_url_to_cache_func6, url, ip, ttl)
+        SecureDNS.executor.submit(SecureDNS.add_url_to_cache_func6, url, ipv6, ttl)
 
     @staticmethod
     def log_traffic(hostname: str):
@@ -232,7 +232,10 @@ class SecureDNS(object):
     def get_ip(url: str):
         instance = Host.objects.filter(url=url).first()
         if instance:
-            return instance.ipv4
+            ipv4 = instance.ipv4
+            if(len(ipv4) > 7):
+                return instance.ipv4
+            return None
         else:
             return None
 
@@ -240,14 +243,17 @@ class SecureDNS(object):
     def get_ipv6(url: str):
         instance = Host.objects.filter(url=url).first()
         if instance:
-            return instance.ipv6
+            ipv6 = instance.ipv6
+            if(len(ipv6) > 3):
+                return instance.ipv6
+            return None
         else:
             return None
 
     @staticmethod
     def get_ip_from_cache(hostname: str):
         ip = SecureDNS.get_ip(hostname)
-        if ip is not None:
+        if ip is not None and len(ip) > 7:
             print("Getting ip for: " + hostname + " from cache")
             SecureDNS.executor.submit(SecureDNS.log_traffic, hostname)
             return ip
@@ -257,8 +263,8 @@ class SecureDNS(object):
     @staticmethod
     def get_ipv6_from_cache(hostname: str):
         ip = SecureDNS.get_ipv6(hostname)
-        if ip is not None and len(ip) > 1:
-            print("Getting ip for: " + hostname + " from cache")
+        if ip is not None and len(ip) > 3:
+            print("Getting ip6 for: " + hostname + " from cache")
             SecureDNS.executor.submit(SecureDNS.log_traffic, hostname)
             return ip
 
@@ -289,9 +295,11 @@ class SecureDNSCloudflare(SecureDNS):
         print("############## RESOLVE IPV6 " + hostname)
         ip = SecureDNS.get_ipv6_from_cache(hostname)
         if ip is not None:
+            print(">>>>>>>> IPv6 FOR " + hostname + " IN CACHE >>>>>>>>>>")    
             return [ip]
 
         print(">>>>>>>> IP FOR " + hostname + " NOT IN CACHE >>>>>>>>>>")
+        hostname_orig = hostname
         connection.create_connection = patched_create_connection
         hostname = SecureDNS.prepare_hostname(hostname)
         self.params.update({'name': hostname})
@@ -304,12 +312,20 @@ class SecureDNSCloudflare(SecureDNS):
             print(response)
             if response['Status'] == NOERROR:
                 answers = []
-                for answer in response['Answer']:
-                    name, response_type, ttl, data = \
-                        map(answer.get, ('name', 'type', 'ttl', 'data'))
-                    if response_type is AAAA:
+                if 'Authority' in response:
+                    for answer in response['Authority']:
+                        name, response_type, ttl, data = \
+                            map(answer.get, ('name', 'type', 'ttl', 'data'))
                         answers.append(data)
-                        SecureDNS.add_url_to_cache(url=hostname, ttl=ttl, ip=data)
+                        answers.append(response_type)
+                elif 'Answer' in response:
+                    for answer in response['Answer']:
+                        name, response_type, ttl, data = \
+                            map(answer.get, ('name', 'type', 'ttl', 'data'))
+                        if response_type is AAAA:
+                            answers.append(data)
+                            answers.append(response_type)
+                            SecureDNS.add_url_to_cache6(url=hostname_orig, ttl=ttl, ipv6=data)
                 if answers is []:
                     return None
                 return answers

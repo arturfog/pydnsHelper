@@ -62,16 +62,20 @@ class HostsManager:
             return None
 
     @staticmethod
-    def add_site(url: str, comment: str="", ttl: int=60, ip: str='', ipv6: str=''):
+    def add_site(url: str, comment: str="", ttl: int=60, ip: str="", ipv6: str=""):
+        #print("!!!!!!!!!!!!!! add_site url: [" + url + "] ip: " + ip)
         if url == "" or url == "0.0.0.0":
             return
 
         if not Host.objects.filter(url=url).exists():
+            print("!!!!!!!!!!!!!! 1 add_site url: [" + url + "] ip: " + ip)
             Host.objects.create(ipv4=ip, ipv6=ipv6, url=url, ttl=ttl, comment=comment)
         else:
-            if(ip == ''):
+            if(ipv6 != ""):
+                print("!!!!!!!!!!!!!! 2 add_site url: [" + url + "] ipv6: " + ipv6)
                 Host.objects.filter(url = url).update(ipv6=ipv6)
-            else:
+            elif(ip != ""):
+                print("!!!!!!!!!!!!!! 3 add_site url: [" + url + "] ip: " + ip)
                 Host.objects.filter(url = url).update(ipv4=ip)
 
 

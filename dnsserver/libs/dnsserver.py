@@ -102,7 +102,7 @@ class Resolver(ProxyResolver):
             record.add_answer(RR(domain, QTYPE.A, ttl=60, rdata=a))
         # 
         if ip is None:
-            print("Failed ipv4 query for " + domain)
+            print("@@@@@@ Failed ipv4 query for " + domain)
             pass
             #ip = self.gdns.resolve(domain)
 
@@ -124,10 +124,10 @@ class Resolver(ProxyResolver):
                 aaaa = dns.SOA(mname=x[0], rname=x[1], times=( int(x[2]), int(x[3]), int(x[4]), int(x[5]), int(x[6])) ) 
                 record.add_auth(RR(domain, QTYPE.SOA, ttl=60, rdata=aaaa))
         if ip is None:
-            print("Failed ipv6 query for " + domain)
+            print("@@@@@@@ Failed ipv6 query for " + domain)
 
     def resolve(self, request, handler):
-        print("Resolve started")
+        #print("Resolve started")
         # remove strange prefix
         # TODO: find what it is and why it's requested
         domain = str(request.q.qname)
@@ -142,7 +142,7 @@ class Resolver(ProxyResolver):
         d.header.set_qr(1)
         d.header.set_ra(1)
 
-        print("Type: " + type_name)
+        #print("Type: " + type_name)
         if type_name == 'A':
             self.handle_ipv4(domain, d)
         elif type_name == 'AAAA':

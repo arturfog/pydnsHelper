@@ -196,27 +196,36 @@ class SecureDNS(object):
     @staticmethod
     def add_url_to_cache_func(url: str, ip: str, ttl: int):
         SecureDNS.lock.acquire()
-        hosts_manager.HostsManager.add_site(url=url, ip=ip, ttl=ttl)
-        msg = 'adding url: {}, with ip: {} to cache'.format(url, ip)
-        Logs.objects.create(msg=msg)
-        SecureDNS.lock.release()
+        try:
+            #print("^^^^^^^^^^^^ Adding ipv4: " + url + " to cache")
+            hosts_manager.HostsManager.add_site(url=url, ip=ip, ttl=ttl)
+            msg = 'adding url ipv4: {}, with ip: {} to cache'.format(url, ip)
+            Logs.objects.create(msg=msg)
+            SecureDNS.lock.release()
+        except:
+            SecureDNS.lock.release()
+        
 
     @staticmethod
     def add_url_to_cache_func6(url: str, ip: str, ttl: int):
         SecureDNS.lock.acquire()
-        hosts_manager.HostsManager.add_site(url=url, ipv6=ip, ttl=ttl)
-        msg = 'adding url: {}, with ip: {} to cache'.format(url, ip)
-        Logs.objects.create(msg=msg)
-        SecureDNS.lock.release()
+        try:
+            #print("^^^^^^^^^^^^^ Adding ipv6: " + url + " to cache")
+            hosts_manager.HostsManager.add_site(url=url, ipv6=ip, ttl=ttl)
+            msg = 'adding url ipv6: {}, with ip: {} to cache'.format(url, ip)
+            Logs.objects.create(msg=msg)
+            SecureDNS.lock.release()
+        except:
+            SecureDNS.lock.release()
 
     @staticmethod
     def add_url_to_cache(url: str, ip: str, ttl: int):
-        print("Adding: " + url + " to cache")
+        #print("&&&&&&&&&&&&& Adding ipv4: " + url + " to cache")
         SecureDNS.executor.submit(SecureDNS.add_url_to_cache_func, url, ip, ttl)
 
     @staticmethod
     def add_url_to_cache6(url: str, ipv6: str, ttl: int):
-        print("Adding: " + url + " to cache")
+        #print("&&&&&&&&&&&&& Adding ipv6: " + url + " to cache")
         SecureDNS.executor.submit(SecureDNS.add_url_to_cache_func6, url, ipv6, ttl)
 
     @staticmethod
@@ -254,7 +263,7 @@ class SecureDNS(object):
     def get_ip_from_cache(hostname: str):
         ip = SecureDNS.get_ip(hostname)
         if ip is not None and len(ip) > 7:
-            print("Getting ip for: " + hostname + " from cache")
+            print("Getting ipv4 for: " + hostname + " from cache")
             SecureDNS.executor.submit(SecureDNS.log_traffic, hostname)
             return ip
 
@@ -264,7 +273,7 @@ class SecureDNS(object):
     def get_ipv6_from_cache(hostname: str):
         ip = SecureDNS.get_ipv6(hostname)
         if ip is not None and len(ip) > 3:
-            print("Getting ip6 for: " + hostname + " from cache")
+            print("Getting ipv6 for: " + hostname + " from cache")
             SecureDNS.executor.submit(SecureDNS.log_traffic, hostname)
             return ip
 
@@ -292,13 +301,13 @@ class SecureDNSCloudflare(SecureDNS):
 
     def resolveIPV6(self, hostname: str):
         '''return ip address(es) of hostname'''
-        print("############## RESOLVE IPV6 " + hostname)
+        #print("############## RESOLVE IPV6 " + hostname)
         ip = SecureDNS.get_ipv6_from_cache(hostname)
         if ip is not None:
-            print(">>>>>>>> IPv6 FOR " + hostname + " IN CACHE >>>>>>>>>>")    
+            #print(">>>>>>>> IPv6 FOR " + hostname + " IN CACHE >>>>>>>>>>")    
             return [ip]
 
-        print(">>>>>>>> IP FOR " + hostname + " NOT IN CACHE >>>>>>>>>>")
+        print(">>>>>>>> IPv6 FOR " + hostname + " NOT IN CACHE >>>>>>>>>>")
         hostname_orig = hostname
         connection.create_connection = patched_create_connection
         hostname = SecureDNS.prepare_hostname(hostname)
@@ -309,7 +318,7 @@ class SecureDNSCloudflare(SecureDNS):
         connection.create_connection = _orig_create_connection
         if r.status_code == 200:
             response = r.json()
-            print(response)
+            #print(response)
             if response['Status'] == NOERROR:
                 answers = []
                 if 'Authority' in response:
@@ -337,7 +346,7 @@ class SecureDNSCloudflare(SecureDNS):
         if ip is not None:
             return [ip]
 
-        print(">>>>>>>> IP FOR " + hostname + " NOT IN CACHE >>>>>>>>>>")
+        print(">>>>>>>> IPv4 FOR " + hostname + " NOT IN CACHE >>>>>>>>>>")
         hostname_orig = hostname
 
         connection.create_connection = patched_create_connection
@@ -348,7 +357,7 @@ class SecureDNSCloudflare(SecureDNS):
         connection.create_connection = _orig_create_connection
         if r.status_code == 200:
             response = r.json()
-            print(response)
+            #print(response)
             if response['Status'] == NOERROR:
                 answers = []
                 for answer in response['Answer']:

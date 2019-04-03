@@ -241,10 +241,10 @@ class SecureDNS(object):
     def get_ip(url: str):
         instance = Host.objects.filter(url=url).first()
         if instance:
-            ipv4 = instance.ipv4
-            if(len(ipv4) > 7):
-                return instance.ipv4
-            return None
+            if(instance.ipv4 == "0.0.0.0" and instance.ttl != 999):
+                return None
+            
+            return instance.ipv4
         else:
             return None
 
@@ -252,18 +252,18 @@ class SecureDNS(object):
     def get_ipv6(url: str):
         instance = Host.objects.filter(url=url).first()
         if instance:
-            ipv6 = instance.ipv6
-            if(len(ipv6) > 3):
-                return instance.ipv6
-            return None
+            if(instance.ipv6 == "::1/128" and instance.ttl != 999):
+                return None
+            
+            return instance.ipv6
         else:
             return None
 
     @staticmethod
     def get_ip_from_cache(hostname: str):
         ip = SecureDNS.get_ip(hostname)
-        if ip is not None and len(ip) > 7:
-            print("Getting ipv4 for: " + hostname + " from cache")
+        if ip is not None:
+            print("Getting ipv4 [" + ip + "] for: " + hostname + " from cache")
             SecureDNS.executor.submit(SecureDNS.log_traffic, hostname)
             return ip
 
@@ -272,8 +272,8 @@ class SecureDNS(object):
     @staticmethod
     def get_ipv6_from_cache(hostname: str):
         ip = SecureDNS.get_ipv6(hostname)
-        if ip is not None and len(ip) > 3:
-            print("Getting ipv6 for: " + hostname + " from cache")
+        if ip is not None:
+            print("Getting ipv6 [" + ip + "] for: " + hostname + " from cache")
             SecureDNS.executor.submit(SecureDNS.log_traffic, hostname)
             return ip
 
@@ -305,7 +305,7 @@ class SecureDNSCloudflare(SecureDNS):
         ip = SecureDNS.get_ipv6_from_cache(hostname)
         if ip is not None:
             #print(">>>>>>>> IPv6 FOR " + hostname + " IN CACHE >>>>>>>>>>")    
-            return [ip]
+            return [ip, 28]
 
         print(">>>>>>>> IPv6 FOR " + hostname + " NOT IN CACHE >>>>>>>>>>")
         hostname_orig = hostname
@@ -324,17 +324,19 @@ class SecureDNSCloudflare(SecureDNS):
                 if 'Authority' in response:
                     for answer in response['Authority']:
                         name, response_type, ttl, data = \
-                            map(answer.get, ('name', 'type', 'ttl', 'data'))
+                            map(answer.get, ('name', 'type', 'TTL', 'data'))
                         answers.append(data)
                         answers.append(response_type)
                 elif 'Answer' in response:
                     for answer in response['Answer']:
                         name, response_type, ttl, data = \
-                            map(answer.get, ('name', 'type', 'ttl', 'data'))
+                            map(answer.get, ('name', 'type', 'TTL', 'data'))
                         if response_type is AAAA:
                             answers.append(data)
                             answers.append(response_type)
                             SecureDNS.add_url_to_cache6(url=hostname_orig, ttl=ttl, ipv6=data)
+                        
+                        break
                 if answers is []:
                     return None
                 return answers
@@ -366,6 +368,8 @@ class SecureDNSCloudflare(SecureDNS):
                     if response_type is A:
                         answers.append(data)
                         SecureDNS.add_url_to_cache(url=hostname_orig, ttl=int(ttl), ip=data)
+
+                    break
                 if answers is []:
                     return None
                 return answers

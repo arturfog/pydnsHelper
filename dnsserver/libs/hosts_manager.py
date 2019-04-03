@@ -43,10 +43,10 @@ class HostsManager:
     def get_ip(url: str):
         instance = Host.objects.filter(url=url).first()
         if instance:
-            ipv4 = instance.ipv4
-            if(len(ipv4) > 7):
-                return instance.ipv4
-            return None
+            if(instance.ipv4 == "0.0.0.0" and instance.ttl != 999):
+                return None
+
+            return instance.ipv4
         else:
             return None
 
@@ -54,27 +54,28 @@ class HostsManager:
     def get_ipv6(url: str):
         instance = Host.objects.filter(url=url).first()
         if instance:
-            ipv6 = instance.ipv6
-            if(len(ipv6) > 3):
-                return instance.ipv6
-            return None
+            if(instance.ipv6 == "::1/128" and instance.ttl != 999):
+                return None
+
+            return instance.ipv6
         else:
             return None
 
     @staticmethod
-    def add_site(url: str, comment: str="", ttl: int=60, ip: str="", ipv6: str=""):
-        #print("!!!!!!!!!!!!!! add_site url: [" + url + "] ip: " + ip)
+    def add_site(url: str, comment: str="", ttl: int=60, ip: str="0.0.0.0", ipv6: str="::1/128"):
         if url == "" or url == "0.0.0.0":
             return
 
         if not Host.objects.filter(url=url).exists():
-            print("!!!!!!!!!!!!!! 1 add_site url: [" + url + "] ip: " + ip)
-            Host.objects.create(ipv4=ip, ipv6=ipv6, url=url, ttl=ttl, comment=comment)
+            print("!!!!!!!!!!!!!! 1 add_site url: [" + url + "] ip: " + ip + " ipv6: " + ipv6 + " ttl:" + str(ttl) + " comment: [" + comment + "]")
+            print("before1 test: ")
+            Host.objects.create(ipv4=ip, ipv6=ipv6, url=url, ttl=ttl, comment=comment, hits=0)
+            print("after test: ")
         else:
-            if(ipv6 != ""):
+            if(ipv6 != "::/0"):
                 print("!!!!!!!!!!!!!! 2 add_site url: [" + url + "] ipv6: " + ipv6)
                 Host.objects.filter(url = url).update(ipv6=ipv6)
-            elif(ip != ""):
+            elif(ip != "0.0.0.0"):
                 print("!!!!!!!!!!!!!! 3 add_site url: [" + url + "] ip: " + ip)
                 Host.objects.filter(url = url).update(ipv4=ip)
 
@@ -117,9 +118,9 @@ class HostsManager:
         if url is not None:
             url = url + "."
             if columns_nr > 2:
-                HostsManager.add_site(url=url, comment=' '.join(columns[2:columns_nr]), ttl=999, ipv6='::/0', ip='0.0.0.0')
+                HostsManager.add_site(url=url, comment=' '.join(columns[2:columns_nr]), ttl=999)
             elif columns_nr > 1:
-                HostsManager.add_site(url, ttl=999, ipv6='::/0', ip='0.0.0.0')
+                HostsManager.add_site(url=url, ttl=999)
 
     def start_ttl_monitoring(self):
         self.threads.append(Thread(target=self.monitor_ttl))

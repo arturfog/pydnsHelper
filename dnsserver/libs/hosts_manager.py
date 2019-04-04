@@ -43,17 +43,41 @@ class HostsManager:
     def get_ip(url: str):
         instance = Host.objects.filter(url=url).first()
         if instance:
-            return instance.ip
+            if(instance.ipv4 == "0.0.0.0" and instance.ttl != 999):
+                return None
+
+            return instance.ipv4
         else:
             return None
 
     @staticmethod
-    def add_site(url: str, comment: str="", ttl: int=60, ip: str='0.0.0.0'):
+    def get_ipv6(url: str):
+        instance = Host.objects.filter(url=url).first()
+        if instance:
+            if(instance.ipv6 == "::0" and instance.ttl != 999):
+                return None
+
+            return instance.ipv6
+        else:
+            return None
+
+    @staticmethod
+    def add_site(url: str, comment: str="", ttl: int=60, ip: str="0.0.0.0", ipv6: str="::0"):        
         if url == "" or url == "0.0.0.0":
             return
 
-        if not Host.objects.filter(url=url).exists():
-            Host.objects.create(ip=ip, url=url, ttl=ttl, comment=comment)
+        obj = Host.objects.filter(url=url).first()
+        if not obj:
+            print("!!!!!!!!!!!!!! 1 add_site url: [" + url + "] ip: " + ip + " ipv6: " + ipv6 + " ttl:" + str(ttl) + " comment: [" + comment + "]")
+            Host.objects.create(ipv4=ip, ipv6=ipv6, url=url, ttl=ttl, comment=comment, hits=0)
+        else:
+            if(ipv6 != "::0"):
+                print("!!!!!!!!!!!!!! 2 add_site url: [" + url + "] ipv6: " + ipv6)
+                Host.objects.filter(url=url).update(ipv6=ipv6)
+            elif(ip != "0.0.0.0"):
+                print("!!!!!!!!!!!!!! 3 add_site url: [" + url + "] ip: " + ip)
+                Host.objects.filter(url=url).update(ipv4=ip)
+
 
     @staticmethod
     def remove_site(url: str):
@@ -89,13 +113,13 @@ class HostsManager:
         if url is not None:
             if HostsManager.get_ip(url) is not None:
                 return
-
+        
         if url is not None:
             url = url + "."
             if columns_nr > 2:
                 HostsManager.add_site(url=url, comment=' '.join(columns[2:columns_nr]), ttl=999)
             elif columns_nr > 1:
-                HostsManager.add_site(url, ttl=999)
+                HostsManager.add_site(url=url, ttl=999)
 
     def start_ttl_monitoring(self):
         self.threads.append(Thread(target=self.monitor_ttl))
@@ -127,4 +151,4 @@ class HostsManager:
         all_entries = Host.objects.all()
         with open(output_path, "w", encoding="utf-8") as hosts_file:
             for host in all_entries:
-                hosts_file.write(host.ip + " " + host.url + "\n")
+                hosts_file.write(host.ipv4 + " " + host.url + "\n")

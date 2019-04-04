@@ -89,16 +89,51 @@ class Record:
 class Resolver(ProxyResolver):
     def __init__(self, upstream):
         super().__init__(upstream, 53, 5)
-        self.cdns = dnsmanager.SecureDNSCloudflare()
         self.gdns = dnsmanager.SecureDNSGoogle()
 
-    def resolve(self, request, handler):
-        domain = str(request.q.qname)
-        ip = self.cdns.resolveIPV4(domain)
-        # no response in cache and from cloudflare, try google dns
+    def handle_ipv4(self, domain: str, record):
+        cdns = dnsmanager.SecureDNSCloudflare()
+        #
+        record.add_question(dns.DNSQuestion(domain,qtype=1))
+        #
+        ip = cdns.resolveIPV4(domain)
+        if ip is not None and len(ip) > 0:
+            a = dns.A(ip[0])
+            record.add_answer(RR(domain, QTYPE.A, ttl=60, rdata=a))
+        # 
         if ip is None:
-            ip = self.gdns.resolve(domain)
+            print("@@@@@@ Failed ipv4 query for " + domain)
+            pass
+            #ip = self.gdns.resolve(domain)
 
+    def handle_ipv6(self, domain:str, record):
+        cdns = dnsmanager.SecureDNSCloudflare()
+        #
+        record.add_question(dns.DNSQuestion(domain,qtype=28))
+        #
+        ip = cdns.resolveIPV6(domain)
+        if ip is not None and len(ip) > 1:
+            # check response type
+            if ip[1] == 28:
+                print("ip6: " + repr(ip))
+                aaaa = dns.AAAA(ip[0])
+                record.add_answer(RR(domain, QTYPE.AAAA, ttl=60, rdata=aaaa))
+            if ip[1] == 6:
+                x = ip[0].split(" ");
+                # TODO: clean up
+                aaaa = dns.SOA(mname=x[0], rname=x[1], times=( int(x[2]), int(x[3]), int(x[4]), int(x[5]), int(x[6])) ) 
+                record.add_auth(RR(domain, QTYPE.SOA, ttl=60, rdata=aaaa))
+        if ip is None:
+            print("@@@@@@@ Failed ipv6 query for " + domain)
+
+    def resolve(self, request, handler):
+        #print("Resolve started")
+        # remove strange prefix
+        # TODO: find what it is and why it's requested
+        domain = str(request.q.qname)
+        if "_http._tcp." in domain:
+            domain = domain.replace("_http._tcp.", "")
+        
         type_name = QTYPE[request.q.qtype]
 
         #print(repr(request.header))
@@ -106,17 +141,17 @@ class Resolver(ProxyResolver):
         d.header = request.header
         d.header.set_qr(1)
         d.header.set_ra(1)
-        d.add_question(dns.DNSQuestion(domain))
 
-        a = dns.A(ip[0])
-        #aaa = dns.AAAA(ip[0])
-
-        d.add_answer(RR(domain, QTYPE.A, ttl=60, rdata=a))
-
-        # resolve using normal DNS
-        # ret = super().resolve(request, handler)
-
-        # return generated answer
+        #print("Type: " + type_name)
+        if type_name == 'A':
+            self.handle_ipv4(domain, d)
+        elif type_name == 'AAAA':
+            self.handle_ipv6(domain, d)
+        else:
+            # resolve using normal DNS
+            ret = super().resolve(request, handler)
+            return ret
+        #print(repr(d))
         return d
 
 

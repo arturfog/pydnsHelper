@@ -129,6 +129,12 @@
     <!-- Custom scripts for all pages-->
     <script src="{% static 'js/sb-admin.min.js' %}"></script>
 
+<script>
+// Call the dataTables jQuery plugin
+$(document).ready(function() {
+  $('#dataTable').DataTable();
+});
+</script>
     <script type="text/javascript">  
       var a = document.getElementById('myAreaChart').getContext('2d');
       var myLineChart = new Chart(a, {

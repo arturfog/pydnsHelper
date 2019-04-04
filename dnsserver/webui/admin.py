@@ -16,7 +16,7 @@ class HostSourcesAdmin(admin.ModelAdmin):
     search_fields = ('url',)
 
 class HostAdmin(admin.ModelAdmin):
-    list_display = ('url', 'ip', 'ttl', 'hits')
+    list_display = ('url', 'ipv4', 'ipv6', 'ttl', 'hits')
     #list_filter = ('url', 'ttl')
     search_fields = ('url', )
 

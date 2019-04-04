@@ -7,7 +7,7 @@ class Host(models.Model):
     id = models.AutoField(primary_key=True)
     url = models.CharField(max_length=200, help_text='URL', null=False, unique=True)
     ipv4 = models.CharField(max_length=16, help_text='IPv4', null=False, default="0.0.0.0")
-    ipv6 = models.CharField(max_length=40, help_text='IPv6', null=False, default="::1/128")
+    ipv6 = models.CharField(max_length=40, help_text='IPv6', null=False, default="::0")
     ttl = models.IntegerField(help_text='TTL', null=False, default=999)
     hits = models.IntegerField(help_text='Hits', null=False, default=0)
     last_access = models.DateTimeField(null=True)

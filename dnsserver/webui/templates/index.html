@@ -126,7 +126,7 @@
               {% for host in hosts|slice:":50" %}
               <tr>
                 <td>{{ host.url }}</td>
-                <td>{{ host.ip }}</td>
+                <td>{{ host.ipv4 }}</td>
                 <td>{{ host.hits }}</td>
                 <td>{{ host.comment }}</td>
               </tr>

@@ -252,7 +252,7 @@ class SecureDNS(object):
     def get_ipv6(url: str):
         instance = Host.objects.filter(url=url).first()
         if instance:
-            if(instance.ipv6 == "::1/128" and instance.ttl != 999):
+            if(instance.ipv6 == "::0" and instance.ttl != 999):
                 return None
             
             return instance.ipv6
@@ -302,13 +302,14 @@ class SecureDNSCloudflare(SecureDNS):
     def resolveIPV6(self, hostname: str):
         '''return ip address(es) of hostname'''
         #print("############## RESOLVE IPV6 " + hostname)
-        ip = SecureDNS.get_ipv6_from_cache(hostname)
+        tmp_hostname = hostname.replace("www.", "")
+        ip = SecureDNS.get_ipv6_from_cache(tmp_hostname)
         if ip is not None:
             #print(">>>>>>>> IPv6 FOR " + hostname + " IN CACHE >>>>>>>>>>")    
             return [ip, 28]
 
-        print(">>>>>>>> IPv6 FOR " + hostname + " NOT IN CACHE >>>>>>>>>>")
-        hostname_orig = hostname
+        print(">>>>>>>> IPv6 FOR " + tmp_hostname + " NOT IN CACHE >>>>>>>>>>")
+        hostname_orig = tmp_hostname
         connection.create_connection = patched_create_connection
         hostname = SecureDNS.prepare_hostname(hostname)
         self.params.update({'name': hostname})
@@ -327,6 +328,7 @@ class SecureDNSCloudflare(SecureDNS):
                             map(answer.get, ('name', 'type', 'TTL', 'data'))
                         answers.append(data)
                         answers.append(response_type)
+                        SecureDNS.add_url_to_cache6(url=hostname_orig, ttl=ttl, ipv6="::1")
                 elif 'Answer' in response:
                     for answer in response['Answer']:
                         name, response_type, ttl, data = \
@@ -335,8 +337,7 @@ class SecureDNSCloudflare(SecureDNS):
                             answers.append(data)
                             answers.append(response_type)
                             SecureDNS.add_url_to_cache6(url=hostname_orig, ttl=ttl, ipv6=data)
-                        
-                        break
+                            break
                 if answers is []:
                     return None
                 return answers
@@ -344,12 +345,13 @@ class SecureDNSCloudflare(SecureDNS):
 
     def resolveIPV4(self, hostname: str):
         '''return ip address(es) of hostname'''
-        ip = SecureDNS.get_ip_from_cache(hostname)
+        tmp_hostname = hostname.replace("www.", "")
+        ip = SecureDNS.get_ip_from_cache(tmp_hostname)
         if ip is not None:
             return [ip]
 
-        print(">>>>>>>> IPv4 FOR " + hostname + " NOT IN CACHE >>>>>>>>>>")
-        hostname_orig = hostname
+        print(">>>>>>>> IPv4 FOR " + tmp_hostname + " NOT IN CACHE >>>>>>>>>>")
+        hostname_orig = tmp_hostname
 
         connection.create_connection = patched_create_connection
         hostname = SecureDNS.prepare_hostname(hostname)
@@ -368,8 +370,7 @@ class SecureDNSCloudflare(SecureDNS):
                     if response_type is A:
                         answers.append(data)
                         SecureDNS.add_url_to_cache(url=hostname_orig, ttl=int(ttl), ip=data)
-
-                    break
+                        break
                 if answers is []:
                     return None
                 return answers

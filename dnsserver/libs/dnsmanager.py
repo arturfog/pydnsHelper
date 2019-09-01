@@ -364,13 +364,14 @@ class SecureDNSCloudflare(SecureDNS):
             #print(response)
             if response['Status'] == NOERROR:
                 answers = []
-                for answer in response['Answer']:
-                    name, response_type, ttl, data = \
-                        map(answer.get, ('name', 'type', 'TTL', 'data'))
-                    if response_type is A:
-                        answers.append(data)
-                        SecureDNS.add_url_to_cache(url=hostname_orig, ttl=int(ttl), ip=data)
-                        break
+                if 'Answer' in response:
+                    for answer in response['Answer']:
+                        name, response_type, ttl, data = \
+                            map(answer.get, ('name', 'type', 'TTL', 'data'))
+                        if response_type is A:
+                            answers.append(data)
+                            SecureDNS.add_url_to_cache(url=hostname_orig, ttl=int(ttl), ip=data)
+                            break
                 if answers is []:
                     return None
                 return answers
@@ -412,12 +413,13 @@ class SecureDNSGoogle(SecureDNS):
             print(response)
             if response['Status'] == NOERROR:
                 answers = []
-                for answer in response['Answer']:
-                    name, response_type, ttl, data = \
-                        map(answer.get, ('name', 'type', 'ttl', 'data'))
-                    if response_type in (A, AAAA):
-                        answers.append(data)
-                        SecureDNS.add_url_to_cache(url=hostname, ttl=int(ttl), ip=data)
+                if 'Answer' in response:
+                    for answer in response['Answer']:
+                        name, response_type, ttl, data = \
+                            map(answer.get, ('name', 'type', 'ttl', 'data'))
+                        if response_type in (A, AAAA):
+                            answers.append(data)
+                            SecureDNS.add_url_to_cache(url=hostname, ttl=int(ttl), ip=data)
                 if answers is []:
                     return None
                 return answers

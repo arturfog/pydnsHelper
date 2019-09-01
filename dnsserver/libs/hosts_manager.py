@@ -66,17 +66,20 @@ class HostsManager:
         if url == "" or url == "0.0.0.0":
             return
 
-        obj = Host.objects.filter(url=url).first()
-        if not obj:
-            print("!!!!!!!!!!!!!! 1 add_site url: [" + url + "] ip: " + ip + " ipv6: " + ipv6 + " ttl:" + str(ttl) + " comment: [" + comment + "]")
-            Host.objects.create(ipv4=ip, ipv6=ipv6, url=url, ttl=ttl, comment=comment, hits=0)
-        else:
-            if(ipv6 != "::0"):
-                print("!!!!!!!!!!!!!! 2 add_site url: [" + url + "] ipv6: " + ipv6)
-                Host.objects.filter(url=url).update(ipv6=ipv6)
-            elif(ip != "0.0.0.0"):
-                print("!!!!!!!!!!!!!! 3 add_site url: [" + url + "] ip: " + ip)
-                Host.objects.filter(url=url).update(ipv4=ip)
+        try: 
+            obj = Host.objects.filter(url=url).first()
+            if not obj:
+                print("!!!!!!!!!!!!!! 1 add_site url: [" + url + "] ip: " + ip + " ipv6: " + ipv6 + " ttl:" + str(ttl) + " comment: [" + comment + "]")
+                Host.objects.create(ipv4=ip, ipv6=ipv6, url=url, ttl=ttl, comment=comment, hits=0)
+            else:
+                if(ipv6 != "::0"):
+                    print("!!!!!!!!!!!!!! 2 add_site url: [" + url + "] ipv6: " + ipv6)
+                    Host.objects.filter(url=url).update(ipv6=ipv6)
+                elif(ip != "0.0.0.0"):
+                    print("!!!!!!!!!!!!!! 3 add_site url: [" + url + "] ip: " + ip)
+                    Host.objects.filter(url=url).update(ipv4=ip)
+        except UnicodeEncodeError:
+            return
 
 
     @staticmethod

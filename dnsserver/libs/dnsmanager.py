@@ -25,6 +25,7 @@ from webui.models import Logs
 from webui.models import Host
 from webui.models import Traffic
 from django.db.models import F
+from django.core.exceptions import ObjectDoesNotExist
 
 from multiprocessing import Lock
 from concurrent.futures import ThreadPoolExecutor
@@ -239,45 +240,43 @@ class SecureDNS(object):
 
     @staticmethod
     def get_ip(url: str):
-        instance = Host.objects.filter(url=url).first()
-        if instance:
-            if(instance.ipv4 == "0.0.0.0" and instance.ttl != 999):
-                return None
-            
-            return instance.ipv4
-        else:
-            return None
+      try:
+          instance = Host.objects.get(url=url)
+          if(instance.ipv4 == "0.0.0.0" and instance.ttl != 999):
+              return None 
+          return instance.ipv4
+      except ObjectDoesNotExist:
+          return None
 
     @staticmethod
     def get_ipv6(url: str):
-        instance = Host.objects.filter(url=url).first()
-        if instance:
-            if(instance.ipv6 == "::0" and instance.ttl != 999):
-                return None
-            
-            return instance.ipv6
-        else:
+        try:
+          instance = Host.objects.get(url=url)
+          if(instance.ipv6 == "::0" and instance.ttl != 999):
             return None
+          return instance.ipv6
+        except ObjectDoesNotExist:
+          return None
 
     @staticmethod
     def get_ip_from_cache(hostname: str):
         ip = SecureDNS.get_ip(hostname)
         if ip is not None:
             print("Getting ipv4 [" + ip + "] for: " + hostname + " from cache")
-            SecureDNS.executor.submit(SecureDNS.log_traffic, hostname)
+            #SecureDNS.executor.submit(SecureDNS.log_traffic, hostname)
             return ip
 
-        return hosts_manager.HostsManager.get_ip(hostname)
+        return None
 
     @staticmethod
     def get_ipv6_from_cache(hostname: str):
         ip = SecureDNS.get_ipv6(hostname)
         if ip is not None:
             print("Getting ipv6 [" + ip + "] for: " + hostname + " from cache")
-            SecureDNS.executor.submit(SecureDNS.log_traffic, hostname)
+            #SecureDNS.executor.submit(SecureDNS.log_traffic, hostname)
             return ip
 
-        return hosts_manager.HostsManager.get_ipv6(hostname)
+        return None
 
 
     @staticmethod

@@ -8,5 +8,6 @@ sudo apt install -y python-pip python3-pip libgetdns-dev
 #sudo chmod 500 /etc/authbind/byport/53
 #
 #sudo iptables -t nat -A OUTPUT -o lo -p udp --dport 53 -j REDIRECT --to-port 5053
+#sudo iptables -t nat -A PREROUTING -i eth0 -p udp --dport 53 -j REDIRECT --to-port 5053
 pip3 install virtualenv
 python3 -m virtualenv -p /usr/bin/python3 venv

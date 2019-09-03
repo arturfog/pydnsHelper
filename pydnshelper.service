@@ -1,0 +1,13 @@
+[Unit]
+Description=pydnshelper
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/pi/pydnsHelper
+ExecStartPre=/sbin/iptables -t nat -A PREROUTING -i eth0 -p udp --dport 53 -j REDIRECT --to-port 5053
+ExecStart=/home/pi/pydnsHelper/venv/bin/python3 /home/pi/pydnsHelper/dnsserver/manage.py runserver 0.0.0.0:8000
+Restart=on-abort
+
+[Install]
+WantedBy=multi-user.target

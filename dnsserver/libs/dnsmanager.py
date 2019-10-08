@@ -199,7 +199,7 @@ class SecureDNS(object):
         SecureDNS.lock.acquire()
         try:
             #print("^^^^^^^^^^^^ Adding ipv4: " + url + " to cache")
-            hosts_manager.HostsManager.add_site(url=url, ip=ip, ttl=ttl)
+            hosts_manager.HostsManager.add_site(url=url, ip=ip)
             msg = 'adding url ipv4: {}, with ip: {} to cache'.format(url, ip)
             Logs.objects.create(msg=msg)
             SecureDNS.lock.release()
@@ -212,7 +212,7 @@ class SecureDNS(object):
         SecureDNS.lock.acquire()
         try:
             #print("^^^^^^^^^^^^^ Adding ipv6: " + url + " to cache")
-            hosts_manager.HostsManager.add_site(url=url, ipv6=ip, ttl=ttl)
+            hosts_manager.HostsManager.add_site(url=url, ipv6=ip)
             msg = 'adding url ipv6: {}, with ip: {} to cache'.format(url, ip)
             Logs.objects.create(msg=msg)
             SecureDNS.lock.release()

@@ -10,7 +10,7 @@ class Host(models.Model):
     ipv6 = models.CharField(max_length=40, help_text='IPv6', null=False, default="::0")
     ttl = models.IntegerField(help_text='TTL', null=False, default=999)
     hits = models.IntegerField(help_text='Hits', null=False, default=0)
-    last_access = models.DateTimeField(null=True)
+    created = models.DateTimeField(null=True)
     comment = models.CharField(max_length=250, help_text='Comment', null=True)
 
     def __str__(self):

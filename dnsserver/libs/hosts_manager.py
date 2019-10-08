@@ -16,6 +16,7 @@
 import re
 from time import sleep
 from threading import Thread
+import datetime
 from webui.models import Host
 from django.db import IntegrityError, transaction
 
@@ -29,6 +30,7 @@ class HostsManager:
         self.session = None
         self.threads = []
         self.do_monitor_ttl = True
+        self.enable_debug = False
 
     @staticmethod
     def block_site(url: str):
@@ -62,21 +64,21 @@ class HostsManager:
             return None
 
     @staticmethod
-    def add_site(url: str, comment: str="", ttl: int=60, ip: str="0.0.0.0", ipv6: str="::0"):        
+    def add_site(url: str, comment: str="", ttl: int=920, ip: str="0.0.0.0", ipv6: str="::0"):        
         if url == "" or url == "0.0.0.0":
             return
 
         try: 
             obj = Host.objects.filter(url=url).first()
             if not obj:
-                print("!!!!!!!!!!!!!! 1 add_site url: [" + url + "] ip: " + ip + " ipv6: " + ipv6 + " ttl:" + str(ttl) + " comment: [" + comment + "]")
-                Host.objects.create(ipv4=ip, ipv6=ipv6, url=url, ttl=ttl, comment=comment, hits=0)
+                if __debug__: print("!!!!!!!!!!!!!! 1 add_site url: [" + url + "] ip: " + ip + " ipv6: " + ipv6 + " ttl:" + str(ttl) + " comment: [" + comment + "]")
+                Host.objects.create(ipv4=ip, ipv6=ipv6, url=url, ttl=ttl, comment=comment, hits=0, created=datetime.datetime.now())
             else:
                 if(ipv6 != "::0"):
-                    print("!!!!!!!!!!!!!! 2 add_site url: [" + url + "] ipv6: " + ipv6)
+                    if __debug__: print("!!!!!!!!!!!!!! 2 add_site url: [" + url + "] ipv6: " + ipv6)
                     Host.objects.filter(url=url).update(ipv6=ipv6)
                 elif(ip != "0.0.0.0"):
-                    print("!!!!!!!!!!!!!! 3 add_site url: [" + url + "] ip: " + ip)
+                    if __debug__: print("!!!!!!!!!!!!!! 3 add_site url: [" + url + "] ip: " + ip)
                     Host.objects.filter(url=url).update(ipv4=ip)
         except UnicodeEncodeError:
             return
@@ -94,7 +96,7 @@ class HostsManager:
         from os.path import isfile, join
         onlyfiles = [f for f in listdir(path) if isfile(join(path, f))]
         for file in onlyfiles:
-            print("File: " + file)
+            if __debug__: print("File: " + file)
             with open(join(path, file), "r", encoding="utf-8") as hosts_file:
                 with transaction.atomic():
                     for line in hosts_file:
@@ -139,15 +141,16 @@ class HostsManager:
         while self.do_monitor_ttl:
             # select all non blocked urls
             query = Host.objects.order_by('ttl').filter(ttl__lt=999).all()
+            now = datetime.datetime.now()
             for item in query:
-                if item.ttl <= 0:
+                #
+                diff = now - item.created
+                minutes = int(diff.seconds/60)
+                #
+                if item.ttl - minutes <= 0:
                     self.remove_site(item.url)
-                else:
-                    item.ttl -= 1
-                    item.save()
-
-            # wait one minute for next update
-            sleep(60)
+            # wait ten minutes for next update
+            sleep(600)
 
     @staticmethod
     def generate_host_file(output_path: str):

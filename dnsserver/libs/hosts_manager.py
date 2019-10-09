@@ -16,7 +16,7 @@
 import re
 from time import sleep
 from threading import Thread
-import datetime
+from django.utils import timezone
 from webui.models import Host
 from django.db import IntegrityError, transaction
 
@@ -72,7 +72,7 @@ class HostsManager:
             obj = Host.objects.filter(url=url).first()
             if not obj:
                 if __debug__: print("!!!!!!!!!!!!!! 1 add_site url: [" + url + "] ip: " + ip + " ipv6: " + ipv6 + " ttl:" + str(ttl) + " comment: [" + comment + "]")
-                Host.objects.create(ipv4=ip, ipv6=ipv6, url=url, ttl=ttl, comment=comment, hits=0, created=datetime.datetime.today())
+                Host.objects.create(ipv4=ip, ipv6=ipv6, url=url, ttl=ttl, comment=comment, hits=0, created=timezone.now())
             else:
                 if(ipv6 != "::0"):
                     if __debug__: print("!!!!!!!!!!!!!! 2 add_site url: [" + url + "] ipv6: " + ipv6)
@@ -141,7 +141,7 @@ class HostsManager:
         while self.do_monitor_ttl:
             # select all non blocked urls
             query = Host.objects.order_by('ttl').filter(ttl__lt=999).all()
-            now = datetime.datetime.today()
+            now = timezone.now()
             for item in query:
                 #
                 diff = now - item.created

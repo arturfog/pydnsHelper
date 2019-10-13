@@ -64,7 +64,7 @@ class HostsManager:
             return None
 
     @staticmethod
-    def add_site(url: str, comment: str="", ttl: int=920, ip: str="0.0.0.0", ipv6: str="::0"):        
+    def add_site(url: str, comment: str="", ttl: int=2880, ip: str="0.0.0.0", ipv6: str="::0"):        
         if url == "" or url == "0.0.0.0":
             return
 

@@ -13,6 +13,10 @@ class Host(models.Model):
     created = models.DateTimeField(null=True)
     comment = models.CharField(max_length=250, help_text='Comment', null=True)
 
+    indexes = [
+        models.Index(fields=['url',]),
+    ]
+
     def __str__(self):
         """String for representing the Model object."""
         return self.url

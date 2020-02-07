@@ -33,6 +33,13 @@ class HostsManager:
         self.enable_debug = False
 
     @staticmethod
+    def get_or_none(model, *args, **kwargs):
+        try:
+            return model.objects.get(*args, **kwargs)
+        except model.DoesNotExist:
+            return None
+
+    @staticmethod
     def block_site(url: str):
         HostsManager.remove_site(url)
         HostsManager.add_site(url=url, ttl=999)
@@ -43,7 +50,7 @@ class HostsManager:
 
     @staticmethod
     def get_ip(url: str):
-        instance = Host.objects.filter(url=url).first()
+        instance = HostsManager.get_or_none(Host, url=url)
         if instance:
             if(instance.ipv4 == "0.0.0.0" and instance.ttl != 999):
                 return None
@@ -54,7 +61,7 @@ class HostsManager:
 
     @staticmethod
     def get_ipv6(url: str):
-        instance = Host.objects.filter(url=url).first()
+        instance = HostsManager.get_or_none(Host, url=url)
         if instance:
             if(instance.ipv6 == "::0" and instance.ttl != 999):
                 return None
@@ -64,21 +71,20 @@ class HostsManager:
             return None
 
     @staticmethod
-    def add_site(url: str, comment: str="", ttl: int=2880, ip: str="0.0.0.0", ipv6: str="::0"):        
+    def add_site(url: str, comment: str="", ttl: int=20160, ip: str="0.0.0.0", ipv6: str="::0"):        
         if url == "" or url == "0.0.0.0":
             return
-
         try: 
-            obj = Host.objects.filter(url=url).first()
+            obj = HostsManager.get_or_none(Host, url=url)
             if not obj:
-                if __debug__: print("!!!!!!!!!!!!!! 1 add_site url: [" + url + "] ip: " + ip + " ipv6: " + ipv6 + " ttl:" + str(ttl) + " comment: [" + comment + "]")
+                if __debug__: print("!!!!!!!!!!!!!! [new] add_site url: [" + url + "] ip: " + ip + " ipv6: " + ipv6 + " ttl:" + str(ttl) + " comment: [" + comment + "]")
                 Host.objects.create(ipv4=ip, ipv6=ipv6, url=url, ttl=ttl, comment=comment, hits=0, created=timezone.now())
             else:
                 if(ipv6 != "::0"):
-                    if __debug__: print("!!!!!!!!!!!!!! 2 add_site url: [" + url + "] ipv6: " + ipv6)
+                    if __debug__: print("!!!!!!!!!!!!!! [update ipv6] add_site url: [" + url + "] ipv6: " + ipv6)
                     Host.objects.filter(url=url).update(ipv6=ipv6)
                 elif(ip != "0.0.0.0"):
-                    if __debug__: print("!!!!!!!!!!!!!! 3 add_site url: [" + url + "] ip: " + ip)
+                    if __debug__: print("!!!!!!!!!!!!!! [update ipv4] add_site url: [" + url + "] ip: " + ip)
                     Host.objects.filter(url=url).update(ipv4=ip)
         except UnicodeEncodeError:
             return
@@ -100,14 +106,12 @@ class HostsManager:
             with open(join(path, file), "r", encoding="utf-8") as hosts_file:
                 with transaction.atomic():
                     for line in hosts_file:
-                        HostsManager.add_imported_entry(line)
+                        line = line.strip()
+                        if not line.startswith("#"):
+                            HostsManager.add_imported_entry(line)
 
     @staticmethod
     def add_imported_entry(line: str):
-        line = line.strip()
-        if line.startswith("#"):
-            return
-
         line = re.sub('[\t+]', '', line)
         line = re.sub('#', ' ', line)
 
@@ -118,13 +122,14 @@ class HostsManager:
         if url is not None:
             if HostsManager.get_ip(url) is not None:
                 return
+        else:
+            return
         
-        if url is not None:
-            url = url + "."
-            if columns_nr > 2:
-                HostsManager.add_site(url=url, comment=' '.join(columns[2:columns_nr]), ttl=999)
-            elif columns_nr > 1:
-                HostsManager.add_site(url=url, ttl=999)
+        url = url + "."
+        if columns_nr > 2:
+            HostsManager.add_site(url=url, comment=' '.join(columns[2:columns_nr]), ttl=999)
+        elif columns_nr > 1:
+            HostsManager.add_site(url=url, ttl=999)
 
     def start_ttl_monitoring(self):
         self.threads.append(Thread(target=self.monitor_ttl))

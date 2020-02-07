@@ -90,13 +90,12 @@ class Resolver(ProxyResolver):
     def __init__(self, upstream):
         super().__init__(upstream, 53, 5)
         self.gdns = dnsmanager.SecureDNSGoogle()
+        self.cdns = dnsmanager.SecureDNSCloudflare()
 
     def handle_ipv4(self, domain: str, record):
-        cdns = dnsmanager.SecureDNSCloudflare()
-        #
         record.add_question(dns.DNSQuestion(domain,qtype=1))
         #
-        ip = cdns.resolveIPV4(domain)
+        ip = self.cdns.resolveIPV4(domain)
         if ip is not None and len(ip) > 0:
             a = dns.A(ip[0])
             record.add_answer(RR(domain, QTYPE.A, ttl=60, rdata=a))
@@ -104,14 +103,11 @@ class Resolver(ProxyResolver):
         if ip is None:
             print("@@@@@@ Failed ipv4 query for " + domain)
             pass
-            #ip = self.gdns.resolve(domain)
 
     def handle_ipv6(self, domain:str, record):
-        cdns = dnsmanager.SecureDNSCloudflare()
-        #
         record.add_question(dns.DNSQuestion(domain,qtype=28))
         #
-        ip = cdns.resolveIPV6(domain)
+        ip = self.cdns.resolveIPV6(domain)
         if ip is not None and len(ip) > 1:
             # check response type
             if ip[1] == 28:
@@ -127,8 +123,6 @@ class Resolver(ProxyResolver):
             print("@@@@@@@ Failed ipv6 query for " + domain)
 
     def resolve(self, request, handler):
-        #print("Resolve started")
-        # remove strange prefix
         # TODO: find what it is and why it's requested
         domain = str(request.q.qname)
         if "_http._tcp." in domain:
@@ -145,14 +139,16 @@ class Resolver(ProxyResolver):
         #print("Type: " + type_name)
         if type_name == 'A':
             self.handle_ipv4(domain, d)
+            return d
         elif type_name == 'AAAA':
             self.handle_ipv6(domain, d)
+            return d
         else:
             # resolve using normal DNS
             ret = super().resolve(request, handler)
             return ret
         #print(repr(d))
-        return d
+       
 
 
 def handle_sig(signum, frame):

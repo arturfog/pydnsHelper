@@ -176,7 +176,7 @@ class DNSSEC():
 
 class SecureDNS(object):
     lock = Lock()
-    executor = ThreadPoolExecutor(max_workers=10)
+    executor = ThreadPoolExecutor(max_workers=20)
 
     @staticmethod
     def prepare_hostname(hostname: str):
@@ -196,11 +196,11 @@ class SecureDNS(object):
 
     @staticmethod
     def add_url_to_cache_func(url: str, ip: str, ttl: int):
+        msg = 'adding url ipv4: {}, with ip: {} to cache'.format(url, ip)
         SecureDNS.lock.acquire()
         try:
             #print("^^^^^^^^^^^^ Adding ipv4: " + url + " to cache")
             hosts_manager.HostsManager.add_site(url=url, ip=ip)
-            msg = 'adding url ipv4: {}, with ip: {} to cache'.format(url, ip)
             Logs.objects.create(msg=msg)
             SecureDNS.lock.release()
         except:
@@ -209,11 +209,11 @@ class SecureDNS(object):
 
     @staticmethod
     def add_url_to_cache_func6(url: str, ip: str, ttl: int):
+        msg = 'adding url ipv6: {}, with ip: {} to cache'.format(url, ip)
         SecureDNS.lock.acquire()
         try:
             #print("^^^^^^^^^^^^^ Adding ipv6: " + url + " to cache")
             hosts_manager.HostsManager.add_site(url=url, ipv6=ip)
-            msg = 'adding url ipv6: {}, with ip: {} to cache'.format(url, ip)
             Logs.objects.create(msg=msg)
             SecureDNS.lock.release()
         except:

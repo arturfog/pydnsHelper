@@ -31,6 +31,7 @@ from multiprocessing import Lock
 from concurrent.futures import ThreadPoolExecutor
 import datetime
 
+import time
 
 __version__ = '0.0.2'
 
@@ -196,12 +197,12 @@ class SecureDNS(object):
 
     @staticmethod
     def add_url_to_cache_func(url: str, ip: str, ttl: int):
-        msg = 'adding url ipv4: {}, with ip: {} to cache'.format(url, ip)
+        #msg = 'adding url ipv4: {}, with ip: {} to cache'.format(url, ip)
         SecureDNS.lock.acquire()
         try:
             #print("^^^^^^^^^^^^ Adding ipv4: " + url + " to cache")
             hosts_manager.HostsManager.add_site(url=url, ip=ip)
-            Logs.objects.create(msg=msg)
+            #Logs.objects.create(msg=msg)
             SecureDNS.lock.release()
         except:
             SecureDNS.lock.release()
@@ -209,24 +210,24 @@ class SecureDNS(object):
 
     @staticmethod
     def add_url_to_cache_func6(url: str, ip: str, ttl: int):
-        msg = 'adding url ipv6: {}, with ip: {} to cache'.format(url, ip)
+        #msg = 'adding url ipv6: {}, with ip: {} to cache'.format(url, ip)
         SecureDNS.lock.acquire()
         try:
             #print("^^^^^^^^^^^^^ Adding ipv6: " + url + " to cache")
             hosts_manager.HostsManager.add_site(url=url, ipv6=ip)
-            Logs.objects.create(msg=msg)
+            #Logs.objects.create(msg=msg)
             SecureDNS.lock.release()
         except:
             SecureDNS.lock.release()
 
     @staticmethod
     def add_url_to_cache(url: str, ip: str, ttl: int):
-        #print("&&&&&&&&&&&&& Adding ipv4: " + url + " to cache")
+        print("&&&&&&&&&&&&& Adding ipv4: " + url + " to cache")
         SecureDNS.executor.submit(SecureDNS.add_url_to_cache_func, url, ip, ttl)
 
     @staticmethod
     def add_url_to_cache6(url: str, ipv6: str, ttl: int):
-        #print("&&&&&&&&&&&&& Adding ipv6: " + url + " to cache")
+        print("&&&&&&&&&&&&& Adding ipv6: " + url + " to cache")
         SecureDNS.executor.submit(SecureDNS.add_url_to_cache_func6, url, ipv6, ttl)
 
     @staticmethod
@@ -298,6 +299,9 @@ class SecureDNSCloudflare(SecureDNS):
             'ct': ct
         }
 
+        self.pending_requests_4 = []
+        self.pending_requests_6 = []
+
     def resolveIPV6(self, hostname: str):
         '''return ip address(es) of hostname'''
         #print("############## RESOLVE IPV6 " + hostname)
@@ -349,7 +353,24 @@ class SecureDNSCloudflare(SecureDNS):
         if ip is not None:
             return [ip]
 
-        print(">>>>>>>> IPv4 FOR " + tmp_hostname + " NOT IN CACHE >>>>>>>>>>")
+        
+        if tmp_hostname not in self.pending_requests_4:
+            print(">>>>>>>> IPv4 FOR " + tmp_hostname + " NOT IN CACHE >>>>>>>>>>")
+            self.pending_requests_4.append(tmp_hostname)
+        else:
+            # wait 5 seconds for response
+            for i in range(5):
+                print(">>>>>>>> IPv4 FOR " + tmp_hostname + " NOT IN CACHE >>>>>> WAITING >>>>")
+                ip = SecureDNS.get_ip_from_cache(tmp_hostname)
+                if ip is not None:
+                    if tmp_hostname in self.pending_requests_4:
+                        self.pending_requests_4.remove(tmp_hostname)
+                    return [ip]
+                time.sleep(1)
+            if tmp_hostname in self.pending_requests_4:
+                self.pending_requests_4.remove(tmp_hostname)
+            return None
+
         hostname_orig = tmp_hostname
 
         connection.create_connection = patched_create_connection
@@ -360,7 +381,9 @@ class SecureDNSCloudflare(SecureDNS):
         connection.create_connection = _orig_create_connection
         if r.status_code == 200:
             response = r.json()
-            #print(response)
+            
+            print(response)
+            
             if response['Status'] == NOERROR:
                 answers = []
                 if 'Answer' in response:
@@ -371,9 +394,13 @@ class SecureDNSCloudflare(SecureDNS):
                             answers.append(data)
                             SecureDNS.add_url_to_cache(url=hostname_orig, ttl=int(ttl), ip=data)
                             break
-                if answers is []:
+                if tmp_hostname in self.pending_requests_4:
+                    self.pending_requests_4.remove(tmp_hostname)
+                if answers is []:    
                     return None
                 return answers
+        if tmp_hostname in self.pending_requests_4:
+            self.pending_requests_4.remove(tmp_hostname)
         return None
 
 

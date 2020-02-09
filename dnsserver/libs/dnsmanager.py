@@ -82,7 +82,7 @@ def patched_create_connection(address, *args, **kwargs):
     host, port = address
     hostname = DNSSEC.resolveIPv4(host) # your_dns_resolver(host)
 
-    print("host: " + host)
+    print("resolving host using standard dns: " + host)
     if hostname is not None and len(hostname) > 1:
         hostname = hostname[0]
     return _orig_create_connection((hostname, port), *args, **kwargs)
@@ -130,10 +130,14 @@ class DNSSEC():
     def resolve(domain: str):
         addresses, statuses = DNSSEC.resolve_dnssec(domain)
         is_secure = True
+
         for status in statuses:
             if status != DNSSEC.dnssec_status["DNSSEC_SECURE"]:
                 is_secure = False
 
+        # hack for google
+        if is_secure == False and domain == "dns.google.com":
+            is_secure = True
         if is_secure:
             return addresses
         else:
@@ -200,7 +204,6 @@ class SecureDNS(object):
         #msg = 'adding url ipv4: {}, with ip: {} to cache'.format(url, ip)
         SecureDNS.lock.acquire()
         try:
-            #print("^^^^^^^^^^^^ Adding ipv4: " + url + " to cache")
             hosts_manager.HostsManager.add_site(url=url, ip=ip)
             #Logs.objects.create(msg=msg)
             SecureDNS.lock.release()
@@ -213,7 +216,6 @@ class SecureDNS(object):
         #msg = 'adding url ipv6: {}, with ip: {} to cache'.format(url, ip)
         SecureDNS.lock.acquire()
         try:
-            #print("^^^^^^^^^^^^^ Adding ipv6: " + url + " to cache")
             hosts_manager.HostsManager.add_site(url=url, ipv6=ip)
             #Logs.objects.create(msg=msg)
             SecureDNS.lock.release()
@@ -286,29 +288,84 @@ class SecureDNS(object):
         pad_len = random.randint(10, 50)
         return ''.join(random.choice(UNRESERVED_CHARS) for _ in range(pad_len))
 
+    def resolveIPV4(self, hostname: str):
+        '''return ip address(es) of hostname'''
+        tmp_hostname = hostname.replace("www.", "")
+        ip = SecureDNS.get_ip_from_cache(tmp_hostname)
+        if ip is not None:
+            return [ip]
+        
+        if tmp_hostname not in self.pending_requests_4:
+            print(">>>>>>>> [" + self.provider_name + "] IPv4 FOR " + tmp_hostname + " NOT IN CACHE >>>>>>>>>>")
+            self.pending_requests_4.append(tmp_hostname)
+        else:
+            # wait 5 seconds for response
+            for i in range(5):
+                time.sleep(1)
+                print(">>>>>>>> [" + self.provider_name + "]  IPv4 FOR " + tmp_hostname + " NOT IN CACHE >>>>>> WAITING (" + str(i) + ") >>>>")
+                ip = SecureDNS.get_ip_from_cache(tmp_hostname)
+                if ip is not None:
+                    if tmp_hostname in self.pending_requests_4:
+                        self.pending_requests_4.remove(tmp_hostname)
+                    return [ip]
 
+            if tmp_hostname in self.pending_requests_4:
+                self.pending_requests_4.remove(tmp_hostname)
+            return None
+
+        hostname_orig = tmp_hostname
+
+        connection.create_connection = patched_create_connection
+        hostname = SecureDNS.prepare_hostname(hostname)
+        self.params.update({'name': hostname})
+        self.params.update({'type': '1'})
+
+        r = requests.get(self.url, params=self.params)
+        connection.create_connection = _orig_create_connection
+        if r.status_code == 200:
+            response = r.json()
+            
+            print(response)
+            
+            if response['Status'] == NOERROR:
+                answers = []
+                if 'Answer' in response:
+                    for answer in response['Answer']:
+                        name, response_type, ttl, data = \
+                            map(answer.get, self.response_keys)
+                        if response_type is A:
+                            answers.append(data)
+                            SecureDNS.add_url_to_cache(url=hostname_orig, ttl=int(ttl), ip=data)
+                            break
+                if tmp_hostname in self.pending_requests_4:
+                    self.pending_requests_4.remove(tmp_hostname)
+                if answers is []:    
+                    return None
+                return answers
+        if tmp_hostname in self.pending_requests_4:
+            self.pending_requests_4.remove(tmp_hostname)
+        return None
+
+# curl -vk "https://1.1.1.1/dns-querycloudflare-dns.com/dns-query?ct=application/dns-json&type=A&name=facebook.com"
 class SecureDNSCloudflare(SecureDNS):
     def __init__(
             self,
-            query_type='A',
             ct='application/dns-json'
     ):
         self.url = 'https://cloudflare-dns.com/dns-query'
         self.params = {
-            'type': query_type,
             'ct': ct
         }
-
+        self.provider_name = "cloudflare"
+        self.response_keys = ('name', 'type', 'TTL', 'data')
         self.pending_requests_4 = []
         self.pending_requests_6 = []
 
     def resolveIPV6(self, hostname: str):
         '''return ip address(es) of hostname'''
-        #print("############## RESOLVE IPV6 " + hostname)
         tmp_hostname = hostname.replace("www.", "")
         ip = SecureDNS.get_ipv6_from_cache(tmp_hostname)
         if ip is not None:
-            #print(">>>>>>>> IPv6 FOR " + hostname + " IN CACHE >>>>>>>>>>")    
             return [ip, 28]
 
         print(">>>>>>>> IPv6 FOR " + tmp_hostname + " NOT IN CACHE >>>>>>>>>>")
@@ -317,6 +374,10 @@ class SecureDNSCloudflare(SecureDNS):
         hostname = SecureDNS.prepare_hostname(hostname)
         self.params.update({'name': hostname})
         self.params.update({'type': 'AAAA'})
+
+        if self.params['random_padding']:
+            padding = SecureDNS.generate_padding()
+            self.params.update({'random_padding': padding})
 
         r = requests.get(self.url, params=self.params)
         connection.create_connection = _orig_create_connection
@@ -346,63 +407,6 @@ class SecureDNSCloudflare(SecureDNS):
                 return answers
         return None
 
-    def resolveIPV4(self, hostname: str):
-        '''return ip address(es) of hostname'''
-        tmp_hostname = hostname.replace("www.", "")
-        ip = SecureDNS.get_ip_from_cache(tmp_hostname)
-        if ip is not None:
-            return [ip]
-
-        
-        if tmp_hostname not in self.pending_requests_4:
-            print(">>>>>>>> IPv4 FOR " + tmp_hostname + " NOT IN CACHE >>>>>>>>>>")
-            self.pending_requests_4.append(tmp_hostname)
-        else:
-            # wait 5 seconds for response
-            for i in range(5):
-                print(">>>>>>>> IPv4 FOR " + tmp_hostname + " NOT IN CACHE >>>>>> WAITING >>>>")
-                ip = SecureDNS.get_ip_from_cache(tmp_hostname)
-                if ip is not None:
-                    if tmp_hostname in self.pending_requests_4:
-                        self.pending_requests_4.remove(tmp_hostname)
-                    return [ip]
-                time.sleep(1)
-            if tmp_hostname in self.pending_requests_4:
-                self.pending_requests_4.remove(tmp_hostname)
-            return None
-
-        hostname_orig = tmp_hostname
-
-        connection.create_connection = patched_create_connection
-        hostname = SecureDNS.prepare_hostname(hostname)
-        self.params.update({'name': hostname})
-
-        r = requests.get(self.url, params=self.params)
-        connection.create_connection = _orig_create_connection
-        if r.status_code == 200:
-            response = r.json()
-            
-            print(response)
-            
-            if response['Status'] == NOERROR:
-                answers = []
-                if 'Answer' in response:
-                    for answer in response['Answer']:
-                        name, response_type, ttl, data = \
-                            map(answer.get, ('name', 'type', 'TTL', 'data'))
-                        if response_type is A:
-                            answers.append(data)
-                            SecureDNS.add_url_to_cache(url=hostname_orig, ttl=int(ttl), ip=data)
-                            break
-                if tmp_hostname in self.pending_requests_4:
-                    self.pending_requests_4.remove(tmp_hostname)
-                if answers is []:    
-                    return None
-                return answers
-        if tmp_hostname in self.pending_requests_4:
-            self.pending_requests_4.remove(tmp_hostname)
-        return None
-
 
 class SecureDNSGoogle(SecureDNS):
     '''Resolve domains using Google's Public DNS-over-HTTPS API'''
@@ -420,35 +424,23 @@ class SecureDNSGoogle(SecureDNS):
             'edns_client_subnet': edns_client_subnet,
             'random_padding': random_padding,
         }
-
-    def resolve(self, hostname: str):
-        '''return ip address(es) of hostname'''
-
-        connection.create_connection = patched_create_connection
-        hostname = self.prepare_hostname(hostname)
-        self.params.update({'name': hostname})
-
-        if self.params['random_padding']:
-            padding = SecureDNS.generate_padding()
-            self.params.update({'random_padding': padding})
-
-        r = requests.get(self.url, params=self.params)
-        connection.create_connection = _orig_create_connection
-        if r.status_code == 200:
-            response = r.json()
-            print(response)
-            if response['Status'] == NOERROR:
-                answers = []
-                if 'Answer' in response:
-                    for answer in response['Answer']:
-                        name, response_type, ttl, data = \
-                            map(answer.get, ('name', 'type', 'ttl', 'data'))
-                        if response_type in (A, AAAA):
-                            answers.append(data)
-                            SecureDNS.add_url_to_cache(url=hostname, ttl=int(ttl), ip=data)
-                if answers is []:
-                    return None
-                return answers
-        return None
+        self.provider_name = "google"
+        self.response_keys = ('name', 'type', 'TTL', 'data')
+        self.pending_requests_4 = []
+        self.pending_requests_6 = []
 
 
+class Quad9(SecureDNS):
+    '''Resolve domains using Quad9 Public DNS-over-HTTPS API'''
+    def __init__(
+        self,
+        query_type=1,
+        cd=False
+    ):
+        self.url = 'https://dns.quad9.net/dns-query'
+        self.params = {
+            'type': query_type,
+            'cd': cd
+        }
+        self.provider_name = "quad9"
+        self.response_keys = ('name', 'type', 'ttl', 'data')

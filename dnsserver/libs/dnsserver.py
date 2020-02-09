@@ -92,10 +92,16 @@ class Resolver(ProxyResolver):
         self.gdns = dnsmanager.SecureDNSGoogle()
         self.cdns = dnsmanager.SecureDNSCloudflare()
 
+        self.dns_to_use = 0
+        self.dns_servers = [self.cdns, self.gdns]
+
     def handle_ipv4(self, domain: str, record):
         record.add_question(dns.DNSQuestion(domain,qtype=1))
-        #
-        ip = self.cdns.resolveIPV4(domain)
+        # switching between dns servers
+        ip = self.dns_servers[self.dns_to_use].resolveIPV4(domain)
+        self.dns_to_use += 1
+        self.dns_to_use = self.dns_to_use % 2
+
         if ip is not None and len(ip) > 0:
             a = dns.A(ip[0])
             record.add_answer(RR(domain, QTYPE.A, ttl=60, rdata=a))

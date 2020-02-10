@@ -182,6 +182,23 @@ class DNSSEC():
 class SecureDNS(object):
     lock = Lock()
     executor = ThreadPoolExecutor(max_workers=20)
+    ram_cache = {}
+
+    @staticmethod
+    def add_to_ram_cache4(url: str, ip: str):
+        if len(SecureDNS.ram_cache) < 1000:
+            if url not in SecureDNS.ram_cache:
+                print("Adding ipv4 [" + ip + "] for: " + url + " to RAM cache")
+                SecureDNS.ram_cache[url] = ip
+        else:
+            SecureDNS/ram_cache.clear()
+
+    @staticmethod
+    def get_ip_from_ram_cache4(url: str):
+        if url in SecureDNS.ram_cache:
+            print("Getting ipv4 for: " + url + " from RAM cache")
+            return SecureDNS.ram_cache[url]
+        return None       
 
     @staticmethod
     def prepare_hostname(hostname: str):
@@ -224,7 +241,8 @@ class SecureDNS(object):
 
     @staticmethod
     def add_url_to_cache(url: str, ip: str, ttl: int):
-        print("&&&&&&&&&&&&& Adding ipv4: " + url + " to cache")
+        #print("&&&&&&&&&&&&& Adding ipv4: " + url + " to cache")
+        SecureDNS.add_to_ram_cache4(url, ip)
         SecureDNS.executor.submit(SecureDNS.add_url_to_cache_func, url, ip, ttl)
 
     @staticmethod
@@ -263,8 +281,12 @@ class SecureDNS(object):
 
     @staticmethod
     def get_ip_from_cache(hostname: str):
+        ip = SecureDNS.get_ip_from_ram_cache4(hostname)
+        if ip is not None:
+            return ip
         ip = SecureDNS.get_ip(hostname)
         if ip is not None:
+            SecureDNS.add_to_ram_cache4(hostname, ip)
             print("Getting ipv4 [" + ip + "] for: " + hostname + " from cache")
             #SecureDNS.executor.submit(SecureDNS.log_traffic, hostname)
             return ip
@@ -287,6 +309,52 @@ class SecureDNS(object):
         '''generate a pad using unreserved chars'''
         pad_len = random.randint(10, 50)
         return ''.join(random.choice(UNRESERVED_CHARS) for _ in range(pad_len))
+
+    def resolveIPV6(self, hostname: str):
+        '''return ip address(es) of hostname'''
+        tmp_hostname = hostname.replace("www.", "")
+        ip = SecureDNS.get_ipv6_from_cache(tmp_hostname)
+        if ip is not None:
+            return [ip, 28]
+
+        print(">>>>>>>> IPv6 FOR " + tmp_hostname + " NOT IN CACHE >>>>>>>>>>")
+        hostname_orig = tmp_hostname
+        connection.create_connection = patched_create_connection
+        hostname = SecureDNS.prepare_hostname(hostname)
+        self.params.update({'name': hostname})
+        self.params.update({'type': 'AAAA'})
+
+        if self.provider_name == "google" and self.params['random_padding']:
+            padding = SecureDNS.generate_padding()
+            self.params.update({'random_padding': padding})
+
+        r = requests.get(self.url, params=self.params)
+        connection.create_connection = _orig_create_connection
+        if r.status_code == 200:
+            response = r.json()
+            #print(response)
+            if response['Status'] == NOERROR:
+                answers = []
+                if 'Authority' in response:
+                    for answer in response['Authority']:
+                        name, response_type, ttl, data = \
+                            map(answer.get, ('name', 'type', 'TTL', 'data'))
+                        answers.append(data)
+                        answers.append(response_type)
+                        SecureDNS.add_url_to_cache6(url=hostname_orig, ttl=ttl, ipv6="::1")
+                elif 'Answer' in response:
+                    for answer in response['Answer']:
+                        name, response_type, ttl, data = \
+                            map(answer.get, ('name', 'type', 'TTL', 'data'))
+                        if response_type is AAAA:
+                            answers.append(data)
+                            answers.append(response_type)
+                            SecureDNS.add_url_to_cache6(url=hostname_orig, ttl=ttl, ipv6=data)
+                            break
+                if answers is []:
+                    return None
+                return answers
+        return None
 
     def resolveIPV4(self, hostname: str):
         '''return ip address(es) of hostname'''
@@ -346,7 +414,7 @@ class SecureDNS(object):
             self.pending_requests_4.remove(tmp_hostname)
         return None
 
-# curl -vk "https://1.1.1.1/dns-querycloudflare-dns.com/dns-query?ct=application/dns-json&type=A&name=facebook.com"
+# curl -vk "https://dns-querycloudflare-dns.com/dns-query?ct=application/dns-json&type=1&name=facebook.com"
 class SecureDNSCloudflare(SecureDNS):
     def __init__(
             self,
@@ -360,52 +428,6 @@ class SecureDNSCloudflare(SecureDNS):
         self.response_keys = ('name', 'type', 'TTL', 'data')
         self.pending_requests_4 = []
         self.pending_requests_6 = []
-
-    def resolveIPV6(self, hostname: str):
-        '''return ip address(es) of hostname'''
-        tmp_hostname = hostname.replace("www.", "")
-        ip = SecureDNS.get_ipv6_from_cache(tmp_hostname)
-        if ip is not None:
-            return [ip, 28]
-
-        print(">>>>>>>> IPv6 FOR " + tmp_hostname + " NOT IN CACHE >>>>>>>>>>")
-        hostname_orig = tmp_hostname
-        connection.create_connection = patched_create_connection
-        hostname = SecureDNS.prepare_hostname(hostname)
-        self.params.update({'name': hostname})
-        self.params.update({'type': 'AAAA'})
-
-        if self.params['random_padding']:
-            padding = SecureDNS.generate_padding()
-            self.params.update({'random_padding': padding})
-
-        r = requests.get(self.url, params=self.params)
-        connection.create_connection = _orig_create_connection
-        if r.status_code == 200:
-            response = r.json()
-            #print(response)
-            if response['Status'] == NOERROR:
-                answers = []
-                if 'Authority' in response:
-                    for answer in response['Authority']:
-                        name, response_type, ttl, data = \
-                            map(answer.get, ('name', 'type', 'TTL', 'data'))
-                        answers.append(data)
-                        answers.append(response_type)
-                        SecureDNS.add_url_to_cache6(url=hostname_orig, ttl=ttl, ipv6="::1")
-                elif 'Answer' in response:
-                    for answer in response['Answer']:
-                        name, response_type, ttl, data = \
-                            map(answer.get, ('name', 'type', 'TTL', 'data'))
-                        if response_type is AAAA:
-                            answers.append(data)
-                            answers.append(response_type)
-                            SecureDNS.add_url_to_cache6(url=hostname_orig, ttl=ttl, ipv6=data)
-                            break
-                if answers is []:
-                    return None
-                return answers
-        return None
 
 
 class SecureDNSGoogle(SecureDNS):
@@ -429,18 +451,18 @@ class SecureDNSGoogle(SecureDNS):
         self.pending_requests_4 = []
         self.pending_requests_6 = []
 
-
-class Quad9(SecureDNS):
+# curl -vk "https://dns.quad9.net:5053/dns-query?ct=application/dns-json&type=1&name=facebook.com"
+class SecureQuad9(SecureDNS):
     '''Resolve domains using Quad9 Public DNS-over-HTTPS API'''
     def __init__(
         self,
         query_type=1,
         cd=False
     ):
-        self.url = 'https://dns.quad9.net/dns-query'
+        self.url = 'https://dns.quad9.net:5053/dns-query'
         self.params = {
             'type': query_type,
             'cd': cd
         }
         self.provider_name = "quad9"
-        self.response_keys = ('name', 'type', 'ttl', 'data')
+        self.response_keys = ('name', 'type', 'TTL', 'data')

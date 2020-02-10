@@ -91,16 +91,17 @@ class Resolver(ProxyResolver):
         super().__init__(upstream, 53, 5)
         self.gdns = dnsmanager.SecureDNSGoogle()
         self.cdns = dnsmanager.SecureDNSCloudflare()
+        self.quad9 = dnsmanager.SecureQuad9()
 
         self.dns_to_use = 0
-        self.dns_servers = [self.cdns, self.gdns]
+        self.dns_servers = [self.cdns, self.gdns, self.quad9]
 
     def handle_ipv4(self, domain: str, record):
         record.add_question(dns.DNSQuestion(domain,qtype=1))
         # switching between dns servers
         ip = self.dns_servers[self.dns_to_use].resolveIPV4(domain)
         self.dns_to_use += 1
-        self.dns_to_use = self.dns_to_use % 2
+        self.dns_to_use = self.dns_to_use % 3
 
         if ip is not None and len(ip) > 0:
             a = dns.A(ip[0])
@@ -112,8 +113,11 @@ class Resolver(ProxyResolver):
 
     def handle_ipv6(self, domain:str, record):
         record.add_question(dns.DNSQuestion(domain,qtype=28))
-        #
-        ip = self.cdns.resolveIPV6(domain)
+        # switching between dns servers
+        ip = self.dns_servers[self.dns_to_use].resolveIPV6(domain)
+        self.dns_to_use += 1
+        self.dns_to_use = self.dns_to_use % 3
+
         if ip is not None and len(ip) > 1:
             # check response type
             if ip[1] == 28:

@@ -188,7 +188,7 @@ class SecureDNS(object):
     def add_to_ram_cache4(url: str, ip: str):
         if len(SecureDNS.ram_cache) < 1000:
             if url not in SecureDNS.ram_cache:
-                print("Adding ipv4 [" + ip + "] for: " + url + " to RAM cache")
+                print("Adding ipv4 : " + url + " to RAM cache (" + str(len(ram_cache)) + ")")
                 SecureDNS.ram_cache[url] = ip
         else:
             SecureDNS/ram_cache.clear()
@@ -196,7 +196,7 @@ class SecureDNS(object):
     @staticmethod
     def get_ip_from_ram_cache4(url: str):
         if url in SecureDNS.ram_cache:
-            print("Getting ipv4 for: " + url + " from RAM cache")
+            print("Getting ipv4 for: " + url + " from RAM cache (" + str(len(ram_cache)) + ")")
             return SecureDNS.ram_cache[url]
         return None       
 
@@ -466,3 +466,5 @@ class SecureQuad9(SecureDNS):
         }
         self.provider_name = "quad9"
         self.response_keys = ('name', 'type', 'TTL', 'data')
+        self.pending_requests_4 = []
+        self.pending_requests_6 = []

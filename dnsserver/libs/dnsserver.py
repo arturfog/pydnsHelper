@@ -94,7 +94,7 @@ class Resolver(ProxyResolver):
         self.quad9 = dnsmanager.SecureQuad9()
 
         self.dns_to_use = 0
-        self.dns_servers = [self.cdns, self.gdns, self.quad9]
+        self.dns_servers = [self.quad9, self.quad9, self.quad9]
 
     def handle_ipv4(self, domain: str, record):
         record.add_question(dns.DNSQuestion(domain,qtype=1))

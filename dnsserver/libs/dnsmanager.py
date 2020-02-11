@@ -136,8 +136,9 @@ class DNSSEC():
                 is_secure = False
 
         # hack for google
-        if is_secure == False and domain == "dns.google.com":
-            is_secure = True
+        if is_secure == False:
+            if domain == "dns.google.com" or domain == "dns.quad9.net":
+                is_secure = True
         if is_secure:
             return addresses
         else:
@@ -188,7 +189,7 @@ class SecureDNS(object):
     def add_to_ram_cache4(url: str, ip: str):
         if len(SecureDNS.ram_cache) < 1000:
             if url not in SecureDNS.ram_cache:
-                print("Adding ipv4 : " + url + " to RAM cache (" + str(len(ram_cache)) + ")")
+                print("Adding ipv4 : " + url + " to RAM cache (" + str(len(SecureDNS.ram_cache)) + ")")
                 SecureDNS.ram_cache[url] = ip
         else:
             SecureDNS/ram_cache.clear()
@@ -196,8 +197,8 @@ class SecureDNS(object):
     @staticmethod
     def get_ip_from_ram_cache4(url: str):
         if url in SecureDNS.ram_cache:
-            print("Getting ipv4 for: " + url + " from RAM cache (" + str(len(ram_cache)) + ")")
-            return SecureDNS.ram_cache[url]
+            print("Getting ipv4 for: " + url + " from RAM cache (" + str(len(SecureDNS.ram_cache)) + ")")
+            return str(SecureDNS.ram_cache[url])
         return None       
 
     @staticmethod

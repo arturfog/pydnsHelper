@@ -243,8 +243,8 @@ class SecureDNS(object):
     @staticmethod
     def add_url_to_cache(url: str, ip: str, ttl: int):
         #print("&&&&&&&&&&&&& Adding ipv4: " + url + " to cache")
-        SecureDNS.add_to_ram_cache4(url, ip)
         SecureDNS.executor.submit(SecureDNS.add_url_to_cache_func, url, ip, ttl)
+        SecureDNS.add_to_ram_cache4(url, ip)
 
     @staticmethod
     def add_url_to_cache6(url: str, ipv6: str, ttl: int):

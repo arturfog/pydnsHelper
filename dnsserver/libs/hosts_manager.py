@@ -20,6 +20,7 @@ from django.utils import timezone
 from webui.models import Host
 from django.db import IntegrityError, transaction
 
+import random
 from webui.models import Logs
 
 class HostsManager:
@@ -72,6 +73,7 @@ class HostsManager:
 
     @staticmethod
     def add_site(url: str, comment: str="", ttl: int=20160, ip: str="0.0.0.0", ipv6: str="::0"):        
+        #print("%%%%%%%%%%%%%% new request: " + url + " with ttl: " + str(ttl) + " and ip: " + ip)
         if url == "" or url == "0.0.0.0":
             return
         try: 

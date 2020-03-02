@@ -160,7 +160,7 @@ class HostsManager:
                 if item.ttl - minutes <= 0:
                     self.remove_site(item.url)
             # wait ten minutes for next update
-            sleep(600)
+            sleep(1200)
 
     @staticmethod
     def generate_host_file(output_path: str):

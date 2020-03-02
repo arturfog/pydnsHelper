@@ -182,7 +182,7 @@ class DNSSEC():
 
 class SecureDNS(object):
     lock = Lock()
-    executor = ThreadPoolExecutor(max_workers=20)
+    executor = ThreadPoolExecutor(max_workers=10)
     ram_cache = {}
 
     @staticmethod
@@ -192,7 +192,7 @@ class SecureDNS(object):
                 print("Adding ipv4 : " + url + " to RAM cache (" + str(len(SecureDNS.ram_cache)) + ")")
                 SecureDNS.ram_cache[url] = ip
         else:
-            SecureDNS/ram_cache.clear()
+            SecureDNS.ram_cache.clear()
 
     @staticmethod
     def get_ip_from_ram_cache4(url: str):

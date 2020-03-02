@@ -75,10 +75,13 @@ class HostsManager:
         if url == "" or url == "0.0.0.0":
             return
         try: 
+            rand_ttl = ttl
+            if ttl != 999:
+                rand_ttl = ttl + random.randint(100,100000)
             obj = HostsManager.get_or_none(Host, url=url)
             if not obj:
                 if __debug__: print("!!!!!!!!!!!!!! [new] add_site url: [" + url + "] ip: " + ip + " ipv6: " + ipv6 + " ttl:" + str(ttl) + " comment: [" + comment + "]")
-                Host.objects.create(ipv4=ip, ipv6=ipv6, url=url, ttl=ttl, comment=comment, hits=0, created=timezone.now())
+                Host.objects.create(ipv4=ip, ipv6=ipv6, url=url, ttl=rand_ttl, comment=comment, hits=0, created=timezone.now())
             else:
                 if(ipv6 != "::0"):
                     if __debug__: print("!!!!!!!!!!!!!! [update ipv6] add_site url: [" + url + "] ipv6: " + ipv6)

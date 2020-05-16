@@ -184,15 +184,21 @@ class SecureDNS(object):
     lock = Lock()
     executor = ThreadPoolExecutor(max_workers=10)
     ram_cache = {}
+    cache_created = time.time()
 
     @staticmethod
     def add_to_ram_cache4(url: str, ip: str):
-        if len(SecureDNS.ram_cache) < 1000:
-            if url not in SecureDNS.ram_cache:
-                print("Adding ipv4 : " + url + " to RAM cache (" + str(len(SecureDNS.ram_cache)) + ")")
-                SecureDNS.ram_cache[url] = ip
+        if len(SecureDNS.ram_cache) < 2000:
+            if (time.time() - SecureDNS.cache_created) < 14400:
+                if url not in SecureDNS.ram_cache:
+                    print("Adding ipv4 : " + url + " to RAM cache (" + str(len(SecureDNS.ram_cache)) + ")")
+                    SecureDNS.ram_cache[url] = ip
+            else:
+                SecureDNS.ram_cache.clear()
+                SecureDNS.cache_created = time.time()
         else:
             SecureDNS.ram_cache.clear()
+            SecureDNS.cache_created = time.time()
 
     @staticmethod
     def get_ip_from_ram_cache4(url: str):

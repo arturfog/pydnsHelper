@@ -25,10 +25,12 @@ class HostsSourcesUtils:
     def load_sources_urls():
         HostsSourcesUtils.links.clear()
         HostsSourcesUtils.links.append("http://winhelp2002.mvps.org/hosts.txt")
-        HostsSourcesUtils.links.append("https://raw.githubusercontent.com/yous/YousList/master/hosts.txt")
         HostsSourcesUtils.links.append("https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts")
-        HostsSourcesUtils.links.append("http://sysctl.org/cameleon/hosts")
+        HostsSourcesUtils.links.append("https://raw.githubusercontent.com/AdAway/adaway.github.io/master/hosts.txt")
         HostsSourcesUtils.links.append("http://someonewhocares.org/hosts/hosts")
+        HostsSourcesUtils.links.append("https://www.malwaredomainlist.com/hostslist/hosts.txt")
+        HostsSourcesUtils.links.append("https://raw.githubusercontent.com/FadeMind/hosts.extras/master/add.Spam/hosts")
+        HostsSourcesUtils.links.append("https://raw.githubusercontent.com/tiuxo/hosts/master/ads")     
 
         with transaction.atomic():
             for link in HostsSourcesUtils.links:

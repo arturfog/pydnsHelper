@@ -72,14 +72,14 @@ class HostsManager:
             return None
 
     @staticmethod
-    def add_site(url: str, comment: str="", ttl: int=20160, ip: str="0.0.0.0", ipv6: str="::0"):        
+    def add_site(url: str, comment: str="", ttl: int=6600, ip: str="0.0.0.0", ipv6: str="::0"):        
         #print("%%%%%%%%%%%%%% new request: " + url + " with ttl: " + str(ttl) + " and ip: " + ip)
         if url == "" or url == "0.0.0.0":
             return
         try: 
             rand_ttl = ttl
             if ttl != 999:
-                rand_ttl = ttl + random.randint(100,100000)
+                rand_ttl = ttl + random.randint(100,1000)
             obj = HostsManager.get_or_none(Host, url=url)
             if not obj:
                 if __debug__: print("!!!!!!!!!!!!!! [new] add_site url: [" + url + "] ip: " + ip + " ipv6: " + ipv6 + " ttl:" + str(ttl) + " comment: [" + comment + "]")
@@ -93,7 +93,6 @@ class HostsManager:
                     Host.objects.filter(url=url).update(ipv4=ip)
         except UnicodeEncodeError:
             return
-
 
     @staticmethod
     def remove_site(url: str):
@@ -160,7 +159,7 @@ class HostsManager:
                 if item.ttl - minutes <= 0:
                     self.remove_site(item.url)
             # wait ten minutes for next update
-            sleep(1200)
+            sleep(3600)
 
     @staticmethod
     def generate_host_file(output_path: str):

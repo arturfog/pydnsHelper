@@ -17,7 +17,7 @@ import re
 from time import sleep
 from threading import Thread
 from django.utils import timezone
-from webui.models import Host
+from webui.models import Host, IPv4, IPv6
 from django.db import IntegrityError, transaction
 
 import random
@@ -43,20 +43,54 @@ class HostsManager:
     @staticmethod
     def block_site(url: str):
         HostsManager.remove_site(url)
-        HostsManager.add_site(url=url, ttl=999)
+        HostsManager.add_site(url=url, ttl=-1)
 
     @staticmethod
     def unblock_site(url: str):
         HostsManager.remove_site(url)
 
     @staticmethod
+    def get_ip_all(url: str):
+        instance = HostsManager.get_or_none(Host, url=url)
+        if instance:
+            if instance.blocked == True:
+                return ["0.0.0.0"]
+            query4 = IPv4.objects.filter(host=instance).all()
+            if query4:
+                resp = []
+                for i in query4:
+                    resp.append(i.ip)
+                return resp
+            return None
+        else:
+            return None
+
+    @staticmethod
     def get_ip(url: str):
         instance = HostsManager.get_or_none(Host, url=url)
         if instance:
-            if(instance.ipv4 == "0.0.0.0" and instance.ttl != 999):
-                return None
+            if instance.blocked == True:
+                return "0.0.0.0"
+            query4 = IPv4.objects.filter(host=instance).first()
+            if query4:
+                return query4.ip
+            return None
+        else:
+            return None
 
-            return instance.ipv4
+    @staticmethod
+    def get_ipv6_all(url: str):
+        instance = HostsManager.get_or_none(Host, url=url)
+        if instance:
+            if instance.blocked == True:
+                return ["::0"]
+            query6 = IPv6.objects.filter(host=instance).all()
+            if query6:
+                resp = []
+                for i in query6:
+                    resp.append(i.ip)
+                return resp
+            return None
         else:
             return None
 
@@ -64,39 +98,47 @@ class HostsManager:
     def get_ipv6(url: str):
         instance = HostsManager.get_or_none(Host, url=url)
         if instance:
-            if(instance.ipv6 == "::0" and instance.ttl != 999):
-                return None
-
-            return instance.ipv6
+            if instance.blocked == True:
+                return "::0"
+            query6 = IPv6.objects.filter(host=instance).first()
+            if query6:
+                return query6.ip
+            return None
         else:
             return None
 
     @staticmethod
-    def add_site(url: str, comment: str="", ttl: int=6600, ip: str="0.0.0.0", ipv6: str="::0"):        
-        #print("%%%%%%%%%%%%%% new request: " + url + " with ttl: " + str(ttl) + " and ip: " + ip)
+    def add_site(url: str, comment: str="", ttl: int=6000, ip: str="0.0.0.0", ipv6: str="::0"):        
         if url == "" or url == "0.0.0.0":
             return
         try: 
             rand_ttl = ttl
-            if ttl != 999:
+            if ttl != -1:
                 rand_ttl = ttl + random.randint(100,1000)
             obj = HostsManager.get_or_none(Host, url=url)
             if not obj:
-                if __debug__: print("!!!!!!!!!!!!!! [new] add_site url: [" + url + "] ip: " + ip + " ipv6: " + ipv6 + " ttl:" + str(ttl) + " comment: [" + comment + "]")
-                Host.objects.create(ipv4=ip, ipv6=ipv6, url=url, ttl=rand_ttl, comment=comment, hits=0, created=timezone.now())
+                #if __debug__: print("!!!!!!!!!!!!!! [new] add_site url: [" + url + "] ip: " + ip + " ipv6: " + ipv6 + " ttl:" + str(ttl) + " comment: [" + comment + "]")
+                if ttl != -1:
+                    host = Host.objects.create(url=url, comment=comment,hits=0, created=timezone.now())
+                    IPv4.objects.create(host=host, ip=ip, ttl=rand_ttl)
+                    if ipv6 != "::0":
+                        IPv6.objects.create(host=host, ip=ipv6, ttl=rand_ttl)
+                else:
+                    host = Host.objects.create(url=url, comment=comment,hits=0, created=timezone.now(), blocked=True)
             else:
-                if(ipv6 != "::0"):
-                    if __debug__: print("!!!!!!!!!!!!!! [update ipv6] add_site url: [" + url + "] ipv6: " + ipv6)
-                    Host.objects.filter(url=url).update(ipv6=ipv6)
-                elif(ip != "0.0.0.0"):
-                    if __debug__: print("!!!!!!!!!!!!!! [update ipv4] add_site url: [" + url + "] ip: " + ip)
-                    Host.objects.filter(url=url).update(ipv4=ip)
+                if obj.blocked == False:
+                    if(ipv6 != "::0"):
+                        if __debug__: print("!!!!!!!!!!!!!! [update ipv6] add_site url: [" + url + "] ipv6: " + ipv6)
+                        IPv6.objects.create(host=obj, ip=ipv6, ttl=rand_ttl)
+                    elif(ip != "0.0.0.0"):
+                        if __debug__: print("!!!!!!!!!!!!!! [update ipv4] add_site url: [" + url + "] ip: " + ip)
+                        IPv4.objects.create(host=obj, ip=ip, ttl=rand_ttl)
         except UnicodeEncodeError:
             return
 
     @staticmethod
     def remove_site(url: str):
-        if not Host.objects.filter(url=url).exists():
+        if Host.objects.filter(url=url).exists():
             instance = Host.objects.get(url=url)
             instance.delete()
 
@@ -131,9 +173,9 @@ class HostsManager:
         
         url = url + "."
         if columns_nr > 2:
-            HostsManager.add_site(url=url, comment=' '.join(columns[2:columns_nr]), ttl=999)
+            HostsManager.add_site(url=url, comment=' '.join(columns[2:columns_nr]), ttl=-1)
         elif columns_nr > 1:
-            HostsManager.add_site(url=url, ttl=999)
+            HostsManager.add_site(url=url, ttl=-1)
 
     def start_ttl_monitoring(self):
         self.threads.append(Thread(target=self.monitor_ttl))
@@ -149,9 +191,18 @@ class HostsManager:
         HostsManager.ttlThreadRunning = True
         while self.do_monitor_ttl:
             # select all non blocked urls
-            query = Host.objects.order_by('ttl').filter(ttl__lt=999).all()
+            query4 = IPv4.objects.order_by('ttl').exclude(ttl=-1).all()
             now = timezone.now()
-            for item in query:
+            for item in query4:
+                #
+                diff = now - item.created
+                minutes = int(diff.seconds/60)
+                #
+                if item.ttl - minutes <= 0:
+                    self.remove_site(item.url)
+            query6 = IPv6.objects.order_by('ttl').exclude(ttl=-1).all()
+            now = timezone.now()
+            for item in query6:
                 #
                 diff = now - item.created
                 minutes = int(diff.seconds/60)
@@ -166,4 +217,5 @@ class HostsManager:
         all_entries = Host.objects.all()
         with open(output_path, "w", encoding="utf-8") as hosts_file:
             for host in all_entries:
-                hosts_file.write(host.ipv4 + " " + host.url + "\n")
+                ip = HostsManager.get_ip(host.url)
+                hosts_file.write(ip + " " + host.url + "\n")

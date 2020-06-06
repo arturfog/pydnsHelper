@@ -103,9 +103,11 @@ class Resolver(ProxyResolver):
         self.dns_to_use += 1
         self.dns_to_use = self.dns_to_use % 3
 
+        # many servers
         if ip is not None and len(ip) > 0:
-            a = dns.A(ip[0])
-            record.add_answer(RR(domain, QTYPE.A, ttl=60, rdata=a))
+            for ans in ip:
+                a = dns.A(ans)
+                record.add_answer(RR(domain, QTYPE.A, ttl=60, rdata=a))
         # 
         if ip is None:
             print("@@@@@@ Failed ipv4 query for " + domain)
@@ -118,6 +120,7 @@ class Resolver(ProxyResolver):
         self.dns_to_use += 1
         self.dns_to_use = self.dns_to_use % 3
 
+        # many servers
         if ip is not None and len(ip) > 1:
             # check response type
             if ip[1] == 28:

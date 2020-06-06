@@ -10,8 +10,6 @@ from libs.dnsserver import SecureDNSServer
 from webui.models import Host
 from webui.models import HostSources
 from webui.models import Logs
-from webui.models import Traffic
-
 from django.shortcuts import redirect
 from django.db import connection
 
@@ -24,18 +22,15 @@ def index(request):
     num_hosts = 0
     num_logs = 0
     hosts = None
-    traffic = None
     if db_table_exists("webui_host"):
         num_hosts = Host.objects.all().count()
         hosts = Host.objects.filter(hits__gt=1).order_by('-hits')
         num_logs = Logs.objects.all().count()
-        traffic = Traffic.objects.all()
 
     context = {
         'num_hosts': num_hosts,
         'hosts': hosts,
         'num_logs': num_logs,
-        'traffic': traffic,
         'server_status': SecureDNSServer.isRunning(),
         'ttl_status': HostsManager.isTTLThreadRunning()
     }

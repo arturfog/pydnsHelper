@@ -25,6 +25,7 @@ from webui.models import Logs
 
 class HostsManager:
     ttlThreadRunning = False
+    lock = Lock()
     def __init__(self):
         self.eng = None
         self.conn = None
@@ -51,7 +52,9 @@ class HostsManager:
 
     @staticmethod
     def get_ip_all(url: str):
+        HostsManager.lock.acquire()
         instance = HostsManager.get_or_none(Host, url=url)
+        HostsManager.lock.release()
         if instance:
             if instance.blocked == True:
                 return ["0.0.0.0"]
@@ -67,7 +70,9 @@ class HostsManager:
 
     @staticmethod
     def get_ip(url: str):
+        HostsManager.lock.acquire()
         instance = HostsManager.get_or_none(Host, url=url)
+        HostsManager.lock.release()
         if instance:
             if instance.blocked == True:
                 return "0.0.0.0"
@@ -195,7 +200,7 @@ class HostsManager:
             now = timezone.now()
             for item in query4:
                 #
-                diff = now - item.created
+                diff = now - item.host.created
                 minutes = int(diff.seconds/60)
                 #
                 if item.ttl - minutes <= 0:
@@ -204,7 +209,7 @@ class HostsManager:
             now = timezone.now()
             for item in query6:
                 #
-                diff = now - item.created
+                diff = now - item.host.created
                 minutes = int(diff.seconds/60)
                 #
                 if item.ttl - minutes <= 0:

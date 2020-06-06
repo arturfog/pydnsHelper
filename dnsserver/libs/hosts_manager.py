@@ -19,7 +19,7 @@ from threading import Thread
 from django.utils import timezone
 from webui.models import Host, IPv4, IPv6
 from django.db import IntegrityError, transaction
-
+from multiprocessing import Lock
 import random
 from webui.models import Logs
 
@@ -52,65 +52,81 @@ class HostsManager:
 
     @staticmethod
     def get_ip_all(url: str):
-        HostsManager.lock.acquire()
-        instance = HostsManager.get_or_none(Host, url=url)
-        HostsManager.lock.release()
-        if instance:
-            if instance.blocked == True:
-                return ["0.0.0.0"]
-            query4 = IPv4.objects.filter(host=instance).all()
-            if query4:
-                resp = []
-                for i in query4:
-                    resp.append(i.ip)
-                return resp
-            return None
-        else:
-            return None
+        try:
+            HostsManager.lock.acquire()
+            instance = HostsManager.get_or_none(Host, url=url)
+            HostsManager.lock.release()
+            if instance:
+                if instance.blocked == True:
+                    return ["0.0.0.0"]
+                query4 = IPv4.objects.filter(host=instance).all()
+                if query4:
+                    resp = []
+                    for i in query4:
+                        resp.append(i.ip)
+                    return resp
+                return None
+            else:
+                return None
+        except:
+            HostsManager.lock.release()
 
     @staticmethod
     def get_ip(url: str):
-        HostsManager.lock.acquire()
-        instance = HostsManager.get_or_none(Host, url=url)
-        HostsManager.lock.release()
-        if instance:
-            if instance.blocked == True:
-                return "0.0.0.0"
-            query4 = IPv4.objects.filter(host=instance).first()
-            if query4:
-                return query4.ip
-            return None
-        else:
-            return None
+        try:
+            HostsManager.lock.acquire()
+            instance = HostsManager.get_or_none(Host, url=url)
+            HostsManager.lock.release()
+            if instance:
+                if instance.blocked == True:
+                    return "0.0.0.0"
+                query4 = IPv4.objects.filter(host=instance).first()
+                if query4:
+                    return query4.ip
+                return None
+            else:
+                return None
+        except:
+            HostsManager.lock.release()
 
     @staticmethod
     def get_ipv6_all(url: str):
-        instance = HostsManager.get_or_none(Host, url=url)
-        if instance:
-            if instance.blocked == True:
-                return ["::0"]
-            query6 = IPv6.objects.filter(host=instance).all()
-            if query6:
-                resp = []
-                for i in query6:
-                    resp.append(i.ip)
-                return resp
-            return None
-        else:
-            return None
+        try:
+            HostsManager.lock.acquire()
+            instance = HostsManager.get_or_none(Host, url=url)
+            HostsManager.lock.release()
+            if instance:
+                if instance.blocked == True:
+                    return ["::0"]
+                query6 = IPv6.objects.filter(host=instance).all()
+                if query6:
+                    resp = []
+                    for i in query6:
+                        resp.append(i.ip)
+                    return resp
+                return None
+            else:
+                return None
+        except:
+            HostsManager.lock.release()
 
     @staticmethod
     def get_ipv6(url: str):
-        instance = HostsManager.get_or_none(Host, url=url)
-        if instance:
-            if instance.blocked == True:
-                return "::0"
-            query6 = IPv6.objects.filter(host=instance).first()
-            if query6:
-                return query6.ip
-            return None
-        else:
-            return None
+        try:
+            HostsManager.lock.acquire()
+            instance = HostsManager.get_or_none(Host, url=url)
+            HostsManager.lock.release()
+            if instance:
+                if instance.blocked == True:
+                    return "::0"
+                query6 = IPv6.objects.filter(host=instance).first()
+                if query6:
+                    return query6.ip
+                return None
+            else:
+                return None
+        except:
+            HostsManager.lock.release()
 
     @staticmethod
     def add_site(url: str, comment: str="", ttl: int=6000, ip: str="0.0.0.0", ipv6: str="::0"):        

@@ -129,7 +129,7 @@ class HostsManager:
             HostsManager.lock.release()
 
     @staticmethod
-    def add_site(url: str, comment: str="", ttl: int=6000, ip: str="0.0.0.0", ipv6: str="::0"):        
+    def add_site(url: str, comment: str="", ttl: int=7000, ip: str="0.0.0.0", ipv6: str="::0"):        
         if url == "" or url == "0.0.0.0":
             return
         try: 
@@ -217,10 +217,12 @@ class HostsManager:
             for item in query4:
                 #
                 diff = now - item.host.created
+                minutes_days = diff.days * 24 * 60
                 minutes = int(diff.seconds/60)
+                minutes_total = minutes_days + minutes
                 #
-                if item.ttl - minutes <= 0:
-                    self.remove_site(item.url)
+                if item.ttl - minutes_total <= 0:
+                    item.delete()
             query6 = IPv6.objects.order_by('ttl').exclude(ttl=-1).all()
             now = timezone.now()
             for item in query6:
@@ -229,7 +231,7 @@ class HostsManager:
                 minutes = int(diff.seconds/60)
                 #
                 if item.ttl - minutes <= 0:
-                    self.remove_site(item.url)
+                    item.delete()
             # wait ten minutes for next update
             sleep(3600)
 

@@ -212,17 +212,21 @@ class HostsManager:
         HostsManager.ttlThreadRunning = True
         while self.do_monitor_ttl:
             # select all non blocked urls
-            query4 = IPv4.objects.order_by('ttl').exclude(ttl=-1).all()
+            hosts = Host.objects.order_by('created').exclude(blocked=True).all()
             now = timezone.now()
-            for item in query4:
+            for item in hosts:
                 #
-                diff = now - item.host.created
+                diff = now - item.created
                 minutes_days = diff.days * 24 * 60
                 minutes = int(diff.seconds/60)
                 minutes_total = minutes_days + minutes
                 #
-                if item.ttl - minutes_total <= 0:
+                ip4 = IPv4.objects.order_by('ttl').filter(host__id=item.id).first()
+                if ip4.ttl - minutes_total <= 0:
                     item.delete()
+                if not ip4:
+                    item.delete()
+
             query6 = IPv6.objects.order_by('ttl').exclude(ttl=-1).all()
             now = timezone.now()
             for item in query6:

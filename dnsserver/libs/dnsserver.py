@@ -97,11 +97,12 @@ class Resolver(ProxyResolver):
         self.dns_servers = [self.gdns, self.cdns, self.quad9]
 
     def handle_ipv4(self, domain: str, record):
-        record.add_question(dns.DNSQuestion(domain,qtype=1))
         # switching between dns servers
+        if self.dns_to_use >= 3:
+            self.dns_to_use = 0
+
+        record.add_question(dns.DNSQuestion(domain,qtype=1))
         ip = self.dns_servers[self.dns_to_use].resolveIPV4(domain)
-        self.dns_to_use += 1
-        self.dns_to_use = self.dns_to_use % 3
 
         # many servers
         if ip is not None and len(ip) > 0:
@@ -113,12 +114,15 @@ class Resolver(ProxyResolver):
             print("@@@@@@ Failed ipv4 query for " + domain)
             pass
 
-    def handle_ipv6(self, domain:str, record):
-        record.add_question(dns.DNSQuestion(domain,qtype=28))
-        # switching between dns servers
-        ip = self.dns_servers[self.dns_to_use].resolveIPV6(domain)
         self.dns_to_use += 1
-        self.dns_to_use = self.dns_to_use % 3
+
+    def handle_ipv6(self, domain:str, record):
+        # switching between dns servers
+        if self.dns_to_use >= 3:
+            self.dns_to_use = 0
+
+        record.add_question(dns.DNSQuestion(domain,qtype=28))
+        ip = self.dns_servers[self.dns_to_use].resolveIPV6(domain)
 
         # many servers
         if ip is not None and len(ip) > 1:
@@ -132,8 +136,11 @@ class Resolver(ProxyResolver):
                 # TODO: clean up
                 aaaa = dns.SOA(mname=x[0], rname=x[1], times=( int(x[2]), int(x[3]), int(x[4]), int(x[5]), int(x[6])) ) 
                 record.add_auth(RR(domain, QTYPE.SOA, ttl=60, rdata=aaaa))
+        
         if ip is None:
             print("@@@@@@@ Failed ipv6 query for " + domain)
+
+        self.dns_to_use += 1
 
     def resolve(self, request, handler):
         # TODO: find what it is and why it's requested

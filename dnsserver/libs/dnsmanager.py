@@ -350,7 +350,7 @@ class SecureDNS(object):
 
     def resolveIPV6(self, hostname: str):
         '''return ip address(es) of hostname'''
-        tmp_hostname = hostname.replace("www.", "")
+        tmp_hostname = hostname # hostname.replace("www.", "")
         ip = SecureDNS.get_ipv6_from_cache(tmp_hostname)
         if ip is not None:
             return [ip, 28]
@@ -395,7 +395,7 @@ class SecureDNS(object):
 
     def resolveIPV4(self, hostname: str):
         '''return ip address(es) of hostname'''
-        tmp_hostname = hostname.replace("www.", "")
+        tmp_hostname = hostname # hostname.replace("www.", "")
         ip = SecureDNS.get_all_ip_from_cache(tmp_hostname)
         if ip is not None:
             return ip

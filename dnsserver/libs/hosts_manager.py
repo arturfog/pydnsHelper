@@ -227,15 +227,6 @@ class HostsManager:
                 if not ip4:
                     item.delete()
 
-            query6 = IPv6.objects.order_by('ttl').exclude(ttl=-1).all()
-            now = timezone.now()
-            for item in query6:
-                #
-                diff = now - item.host.created
-                minutes = int(diff.seconds/60)
-                #
-                if item.ttl - minutes <= 0:
-                    item.delete()
             # wait ten minutes for next update
             sleep(3600)
 

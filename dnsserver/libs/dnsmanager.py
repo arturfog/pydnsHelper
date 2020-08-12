@@ -184,6 +184,7 @@ class SecureDNS(object):
     executor = ThreadPoolExecutor(max_workers=10)
     ram_cache = {}
     cache_created = time.time()
+    session = requests.Session()
 
     @staticmethod
     def add_to_ram_cache4(url: str, ip):
@@ -366,8 +367,13 @@ class SecureDNS(object):
             padding = SecureDNS.generate_padding()
             self.params.update({'random_padding': padding})
 
-        r = requests.get(self.url, params=self.params)
-        connection.create_connection = _orig_create_connection
+        r = None
+        try:
+            r = SecureDNS.session.get(self.url, params=self.params, timeout=5)
+            connection.create_connection = _orig_create_connection
+        except requests.exceptions.ConnectionError as e:
+            return None
+
         if r.status_code == 200:
             response = r.json()
             # print(response)
@@ -425,8 +431,12 @@ class SecureDNS(object):
         self.params.update({'name': hostname})
         self.params.update({'type': '1'})
 
-        r = requests.get(self.url, params=self.params)
-        connection.create_connection = _orig_create_connection
+        r = None
+        try:
+            r = SecureDNS.session.get(self.url, params=self.params, timeout=5)
+            connection.create_connection = _orig_create_connection
+        except requests.exceptions.ConnectionError as e:
+            return None
         if r.status_code == 200:
             response = r.json()
             

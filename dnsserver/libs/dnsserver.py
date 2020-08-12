@@ -108,7 +108,7 @@ class Resolver(ProxyResolver):
         if ip is not None and len(ip) > 0:
             for ans in ip:
                 a = dns.A(ans)
-                record.add_answer(RR(domain, QTYPE.A, ttl=60, rdata=a))
+                record.add_answer(RR(domain, QTYPE.A, ttl=360, rdata=a))
         # 
         if ip is None:
             print("@@@@@@ Failed ipv4 query for " + domain)
@@ -130,7 +130,7 @@ class Resolver(ProxyResolver):
             if ip[1] == 28:
                 print("ip6: " + repr(ip))
                 aaaa = dns.AAAA(ip[0])
-                record.add_answer(RR(domain, QTYPE.AAAA, ttl=60, rdata=aaaa))
+                record.add_answer(RR(domain, QTYPE.AAAA, ttl=360, rdata=aaaa))
             if ip[1] == 6:
                 x = ip[0].split(" ");
                 # TODO: clean up

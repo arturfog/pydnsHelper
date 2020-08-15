@@ -181,7 +181,7 @@ class DNSSEC():
 
 class SecureDNS(object):
     lock = Lock()
-    executor = ThreadPoolExecutor(max_workers=10)
+    executor = ThreadPoolExecutor(max_workers=5)
     ram_cache = {}
     cache_created = time.time()
     session = requests.Session()

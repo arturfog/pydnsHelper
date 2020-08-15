@@ -30,7 +30,8 @@ class HostsSourcesUtils:
         HostsSourcesUtils.links.append("http://someonewhocares.org/hosts/hosts")
         HostsSourcesUtils.links.append("https://www.malwaredomainlist.com/hostslist/hosts.txt")
         HostsSourcesUtils.links.append("https://raw.githubusercontent.com/FadeMind/hosts.extras/master/add.Spam/hosts")
-        HostsSourcesUtils.links.append("https://raw.githubusercontent.com/tiuxo/hosts/master/ads")     
+        HostsSourcesUtils.links.append("https://raw.githubusercontent.com/tiuxo/hosts/master/ads")
+        HostsSourcesUtils.links.append("https://raw.githubusercontent.com/kboghdady/youTube_ads_4_pi-hole/master/black.list")
 
         with transaction.atomic():
             for link in HostsSourcesUtils.links:

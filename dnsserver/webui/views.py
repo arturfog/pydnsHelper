@@ -62,7 +62,6 @@ def isTTLRunning(request):
     isRunning = SecureDNSServer.isRunning()
     return HttpResponse(str(isRunning))
 #####################################################################################
-@login_required
 def start_ttl(request):
     hm = HostsManager()
     hm.start_ttl_monitoring()
@@ -119,6 +118,12 @@ def import_hosts(request):
 @login_required
 def start_server(request):
     SecureDNSServer.start()
+    return HttpResponse("done")
+#####################################################################################
+@login_required
+def update_yt(request):
+    hm = HostsManager()
+    hm.update_yt()
     return HttpResponse("done")
 #####################################################################################
 @login_required

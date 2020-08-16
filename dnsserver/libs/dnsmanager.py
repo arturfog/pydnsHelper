@@ -20,12 +20,9 @@ import requests
 from . import hosts_manager
 import getdns
 from urllib3.util import connection
-
 from webui.models import Logs
-from webui.models import Host, IPv4, IPv6
 from django.db.models import F
 from django.core.exceptions import ObjectDoesNotExist
-
 from multiprocessing import Lock
 from concurrent.futures import ThreadPoolExecutor
 import datetime
@@ -162,7 +159,7 @@ class DNSSEC():
             if "." in addr:
                 adresses_ipv4.append(addr)
 
-        SecureDNS.add_url_to_cache(url=domain, ttl=100, ip=adresses_ipv4)
+        SecureDNS.add_url_to_cache(url=domain, ip=adresses_ipv4)
         return adresses_ipv4
 
     @staticmethod
@@ -183,6 +180,7 @@ class SecureDNS(object):
     lock = Lock()
     executor = ThreadPoolExecutor(max_workers=5)
     ram_cache = {}
+    ram_cache6 = {}
     cache_created = time.time()
     session = requests.Session()
 
@@ -202,11 +200,35 @@ class SecureDNS(object):
             SecureDNS.cache_created = time.time()
 
     @staticmethod
+    def add_to_ram_cache6(url: str, ip):
+        if len(SecureDNS.ram_cache6) < 2000:
+            if (time.time() - SecureDNS.cache_created) < 14400:
+                if url not in SecureDNS.ram_cache6:
+                    print("Adding ipv6 : " + url + " to RAM cache (" +
+                          str(len(SecureDNS.ram_cache6)) + ")")
+                    SecureDNS.ram_cache6[url] = ip
+            else:
+                SecureDNS.ram_cache6.clear()
+                SecureDNS.cache_created = time.time()
+        else:
+            SecureDNS.ram_cache6.clear()
+            SecureDNS.cache_created = time.time()
+
+
+    @staticmethod
     def get_ip_from_ram_cache4(url: str):
         if url in SecureDNS.ram_cache:
             print("Getting ipv4 for: " + url +
                   " from RAM cache (" + str(len(SecureDNS.ram_cache)) + ")")
             return SecureDNS.ram_cache[url]
+        return None
+
+    @staticmethod
+    def get_ip_from_ram_cache6(url: str):
+        if url in SecureDNS.ram_cache6:
+            print("Getting ipv6 for: " + url +
+                  " from RAM cache (" + str(len(SecureDNS.ram_cache6)) + ")")
+            return SecureDNS.ram_cache6[url]
         return None
 
     @staticmethod
@@ -226,7 +248,7 @@ class SecureDNS(object):
             raise InvalidHostName
 
     @staticmethod
-    def add_url_to_cache_func(url: str, ip: str, ttl: int):
+    def add_url_to_cache_func(url: str, ip: str):
         # msg = 'adding url ipv4: {}, with ip: {} to cache'.format(url, ip)
         SecureDNS.lock.acquire()
         try:
@@ -237,7 +259,7 @@ class SecureDNS(object):
             SecureDNS.lock.release()
 
     @staticmethod
-    def add_url_to_cache_func6(url: str, ip: str, ttl: int):
+    def add_url_to_cache_func6(url: str, ip: str):
         # msg = 'adding url ipv6: {}, with ip: {} to cache'.format(url, ip)
         SecureDNS.lock.acquire()
         try:
@@ -248,37 +270,24 @@ class SecureDNS(object):
             SecureDNS.lock.release()
 
     @staticmethod
-    def add_url_to_cache(url: str, ip: str, ttl: int):
+    def add_url_to_cache(url: str, ip: str):
         # print("&&&&&&&&&&&&& Adding ipv4: " + url + " to cache")
         SecureDNS.executor.submit(
-            SecureDNS.add_url_to_cache_func, url, ip, ttl)
+            SecureDNS.add_url_to_cache_func, url, ip)
         #SecureDNS.add_to_ram_cache4(url, ip)
 
     @staticmethod
-    def add_url_to_cache6(url: str, ipv6: str, ttl: int):
+    def add_url_to_cache6(url: str, ipv6: str):
         print("&&&&&&&&&&&&& Adding ipv6: " + url + " to cache")
         SecureDNS.executor.submit(
-            SecureDNS.add_url_to_cache_func6, url, ipv6, ttl)
+            SecureDNS.add_url_to_cache_func6, url, ipv6)
 
     @staticmethod
     def log_traffic(hostname: str):
-        SecureDNS.lock.acquire()
-        Host.objects.filter(url=hostname).update(hits=F('hits')+1)
-        SecureDNS.lock.release()
-
-    @staticmethod
-    def get_ip_all(url: str):
-        try:
-            return hosts_manager.HostsManager.get_ip_all(url)
-        except ObjectDoesNotExist:
-          return None
-
-    @staticmethod
-    def get_ip(url: str):
-        try:
-            return hosts_manager.HostsManager.get_ip(url)
-        except ObjectDoesNotExist:
-          return None
+        pass
+        #SecureDNS.lock.acquire()
+        #Host.objects.filter(url=hostname).update(hits=F('hits')+1)
+        #SecureDNS.lock.release()
 
     @staticmethod
     def get_ipv6_all(url: str):
@@ -288,18 +297,11 @@ class SecureDNS(object):
           return None
 
     @staticmethod
-    def get_ipv6(url: str):
-        try:
-            return hosts_manager.HostsManager.get_ipv6(url)
-        except ObjectDoesNotExist:
-          return None
-
-    @staticmethod
     def get_ip_from_cache(hostname: str):
         ip = SecureDNS.get_ip_from_ram_cache4(hostname)
         if ip is not None:
             return ip[0]
-        ip = SecureDNS.get_ip(hostname)
+        ip = hosts_manager.HostsManager.get_ip(hostname)
         if ip is not None:
             SecureDNS.add_to_ram_cache4(hostname, [ip])
             print("Getting ipv4 [" + ip + "] for: " + hostname + " from cache")
@@ -313,7 +315,7 @@ class SecureDNS(object):
         ip = SecureDNS.get_ip_from_ram_cache4(hostname)
         if ip is not None:
             return ip
-        ip = SecureDNS.get_ip_all(hostname)
+        ip = hosts_manager.HostsManager.get_ip_all(hostname)
         if ip is not None:
             SecureDNS.add_to_ram_cache4(hostname, ip)
             print("Getting ipv4 for: " + hostname + " from cache")
@@ -324,8 +326,12 @@ class SecureDNS(object):
 
     @staticmethod
     def get_ipv6_from_cache(hostname: str):
-        ip = SecureDNS.get_ipv6(hostname)
+        ip = SecureDNS.get_ip_from_ram_cache6(hostname)
         if ip is not None:
+            return ip
+        ip = hosts_manager.HostsManager.get_ipv6(hostname)
+        if ip is not None:
+            SecureDNS.add_to_ram_cache6(hostname, ip)
             print("Getting ipv6 [" + ip + "] for: " + hostname + " from cache")
             # SecureDNS.executor.submit(SecureDNS.log_traffic, hostname)
             return ip
@@ -385,7 +391,7 @@ class SecureDNS(object):
                             map(answer.get, ('name', 'type', 'TTL', 'data'))
                         answers.append(data)
                         answers.append(response_type)
-                        SecureDNS.add_url_to_cache6(url=hostname_orig, ttl=ttl, ipv6="::1")
+                        SecureDNS.add_url_to_cache6(url=hostname_orig, ipv6="::1")
                 elif 'Answer' in response:
                     for answer in response['Answer']:
                         name, response_type, ttl, data = \
@@ -393,7 +399,7 @@ class SecureDNS(object):
                         if response_type is AAAA:
                             answers.append(data)
                             answers.append(response_type)
-                            SecureDNS.add_url_to_cache6(url=hostname_orig, ttl=ttl, ipv6=data)
+                            SecureDNS.add_url_to_cache6(url=hostname_orig, ipv6=data)
                 if answers is []:
                     return None
                 return answers
@@ -450,7 +456,7 @@ class SecureDNS(object):
                             map(answer.get, self.response_keys)
                         if response_type is A:
                             answers.append(data)
-                            SecureDNS.add_url_to_cache(url=hostname_orig, ttl=int(ttl), ip=data)
+                            SecureDNS.add_url_to_cache(url=hostname_orig, ip=data)
                 if tmp_hostname in self.pending_requests_4:
                     self.pending_requests_4.remove(tmp_hostname)
                 if answers is []:    

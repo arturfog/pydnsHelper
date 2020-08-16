@@ -19,26 +19,24 @@ from threading import Thread
 from django.utils import timezone
 from webui.models import Host, IPv4, IPv6
 from django.db import IntegrityError, transaction, utils
-from multiprocessing import Lock
 import random
 from webui.models import Logs
 
 class HostsManager:
     ttlThreadRunning = False
-    lock = Lock()
+    hostsq = Host.objects.all()
+    ip4q = IPv4.objects.all()
+    ip6q = IPv6.objects.all()
+
     def __init__(self):
-        self.eng = None
-        self.conn = None
-        self.session = None
         self.threads = []
         self.do_monitor_ttl = True
-        self.enable_debug = False
 
     @staticmethod
-    def get_or_none(model, *args, **kwargs):
+    def get_or_none(url):
         try:
-            return model.objects.get(*args, **kwargs)
-        except model.DoesNotExist:
+            return HostsManager.hostsq.get(url=url)
+        except Host.DoesNotExist:
             return None
         except utils.OperationalError:
             return None
@@ -54,11 +52,11 @@ class HostsManager:
 
     @staticmethod
     def get_ip_all(url: str):
-        instance = HostsManager.get_or_none(Host, url=url)
+        instance = HostsManager.get_or_none(url=url)
         if instance:
             if instance.blocked == True:
                 return ["0.0.0.0"]
-            query4 = IPv4.objects.filter(host=instance).all()
+            query4 = HostsManager.ip4q.filter(host=instance).all()
             if query4:
                 resp = []
                 for i in query4:
@@ -68,22 +66,22 @@ class HostsManager:
 
     @staticmethod
     def get_ip(url: str):
-        instance = HostsManager.get_or_none(Host, url=url)
+        instance = HostsManager.get_or_none(url=url)
         if instance:
             if instance.blocked == True:
                 return "0.0.0.0"
-            query4 = IPv4.objects.filter(host=instance).first()
+            query4 = HostsManager.ip4q.filter(host=instance).first()
             if query4:
                 return query4.ip
         return None
 
     @staticmethod
     def get_ipv6_all(url: str):
-        instance = HostsManager.get_or_none(Host, url=url)
+        instance = HostsManager.get_or_none(url=url)
         if instance:
             if instance.blocked == True:
                 return ["::0"]
-            query6 = IPv6.objects.filter(host=instance).all()
+            query6 = HostsManager.ip6q.filter(host=instance).all()
             if query6:
                 resp = []
                 for i in query6:
@@ -93,11 +91,11 @@ class HostsManager:
 
     @staticmethod
     def get_ipv6(url: str):
-        instance = HostsManager.get_or_none(Host, url=url)
+        instance = HostsManager.get_or_none(url=url)
         if instance:
             if instance.blocked == True:
                 return "::0"
-            query6 = IPv6.objects.filter(host=instance).first()
+            query6 = HostsManager.ip6q.filter(host=instance).first()
             if query6:
                 return query6.ip
         return None
@@ -111,7 +109,7 @@ class HostsManager:
             rand_ttl = ttl
             if ttl != -1:
                 rand_ttl = ttl + random.randint(100,1000)
-            obj = HostsManager.get_or_none(Host, url=url)
+            obj = HostsManager.get_or_none(url=url)
             if not obj:
                 #if __debug__: print("!!!!!!!!!!!!!! [new] add_site url: [" + url + "] ip: " + ip + " ipv6: " + ipv6 + " ttl:" + str(ttl) + " comment: [" + comment + "]")
                 if ttl != -1:
@@ -202,7 +200,7 @@ class HostsManager:
         HostsManager.ttlThreadRunning = True
         while self.do_monitor_ttl:
             # select all non blocked urls
-            hosts = Host.objects.order_by('created').exclude(blocked=True).all()
+            hosts = HostsManager.hostsq.exclude(blocked=True).order_by('created').all()
             now = timezone.now()
             with transaction.atomic():
                 for item in hosts:
@@ -212,7 +210,7 @@ class HostsManager:
                     minutes = int(diff.seconds/60)
                     minutes_total = minutes_days + minutes
                     #
-                    ip4 = IPv4.objects.order_by('ttl').filter(host__id=item.id).first()
+                    ip4 = HostsManager.ip4q.order_by('ttl').filter(host__id=item.id).first()
                     if ip4.ttl - minutes_total <= 0:
                         item.delete()
                     if not ip4:

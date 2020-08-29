@@ -115,7 +115,6 @@ def import_hosts(request):
     hm.import_host_files("/tmp/hosts/")
     return HttpResponse("done")
 #####################################################################################
-@login_required
 def start_server(request):
     SecureDNSServer.start()
     return HttpResponse("done")

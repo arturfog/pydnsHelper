@@ -217,7 +217,7 @@ class HostsManager:
                         item.delete()
 
             # wait ten minutes for next update
-            sleep(3600)
+            sleep(7200)
 
     @staticmethod
     def generate_host_file(output_path: str):

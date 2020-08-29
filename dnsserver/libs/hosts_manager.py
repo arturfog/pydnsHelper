@@ -20,6 +20,7 @@ from django.utils import timezone
 from webui.models import Host, IPv4, IPv6
 from django.db import IntegrityError, transaction, utils
 import random
+from django import db
 from webui.models import Logs
 
 class HostsManager:
@@ -39,6 +40,10 @@ class HostsManager:
         except Host.DoesNotExist:
             return None
         except utils.OperationalError:
+            db.close_old_connections()
+            return None
+        except db.OperationalError:
+            db.close_old_connections()
             return None
 
     @staticmethod
@@ -198,6 +203,7 @@ class HostsManager:
         msg = 'Monitor started ...'
         Logs.objects.create(msg=msg)
         HostsManager.ttlThreadRunning = True
+        sleep(60)
         while self.do_monitor_ttl:
             # select all non blocked urls
             hosts = HostsManager.hostsq.exclude(blocked=True).order_by('created').all()
@@ -215,7 +221,7 @@ class HostsManager:
                         item.delete()
                     if not ip4:
                         item.delete()
-
+            db.close_old_connections()
             # wait ten minutes for next update
             sleep(7200)
 

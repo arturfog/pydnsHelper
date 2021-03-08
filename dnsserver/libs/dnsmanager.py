@@ -333,7 +333,6 @@ class SecureDNS(object):
         if ip is not None:
             SecureDNS.add_to_ram_cache6(hostname, ip)
             print("Getting ipv6 [" + ip + "] for: " + hostname + " from cache")
-            # SecureDNS.executor.submit(SecureDNS.log_traffic, hostname)
             return ip
 
         return None

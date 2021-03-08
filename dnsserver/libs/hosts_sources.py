@@ -43,6 +43,12 @@ class HostsSourcesUtils:
         return HostSources.objects.count()
 
     @staticmethod
+    def clean_dl_dir():
+        if os.path.isdir("/tmp/hosts/"):
+            for i in os.listdir("/tmp/hosts/"):
+                os.remove(i)
+
+    @staticmethod
     def download_hosts():
         if HostsSourcesUtils.get_number_of_links() > 0:
             all_entries = HostSources.objects.all()

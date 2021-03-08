@@ -29,6 +29,8 @@ from dnslib.proxy import ProxyResolver
 from dnslib.server import DNSServer
 
 from webui.models import Logs
+from webui.models import Stats, ClientIP, StatsHosts
+from concurrent.futures import ThreadPoolExecutor
 
 SERIAL_NO = int((datetime.utcnow() - datetime(1970, 1, 1)).total_seconds())
 
@@ -50,6 +52,8 @@ TYPE_LOOKUP = {
 }
 
 class Resolver(ProxyResolver):
+    executor = ThreadPoolExecutor(max_workers=5)
+
     def __init__(self, upstream):
         super().__init__(upstream, 53, 5)
         self.gdns = dnsmanager.SecureDNSGoogle()
@@ -58,6 +62,23 @@ class Resolver(ProxyResolver):
 
         self.dns_to_use = 0
         self.dns_servers = [self.gdns, self.cdns, self.quad9]
+
+    @staticmethod
+    def get_or_none(classmodel, **kwargs):
+        try:
+            return classmodel.objects.get(**kwargs)
+        except classmodel.DoesNotExist:
+            return None
+
+    @staticmethod
+    def log_stats(hostname: str, ip: str):
+        host = Resolver.get_or_none(StatsHosts,host=hostname)
+        client = Resolver.get_or_none(ClientIP,ip=ip)
+        if client is None:
+            client = ClientIP.objects.create(ip=ip)
+        if host is None:
+            host = StatsHosts.objects.create(host=hostname)
+        Stats.objects.create(host=host, client=client)
 
     def handle_ipv4(self, domain: str, record):
         # switching between dns servers
@@ -95,7 +116,7 @@ class Resolver(ProxyResolver):
                 aaaa = dns.AAAA(ip[0])
                 record.add_answer(RR(domain, QTYPE.AAAA, ttl=360, rdata=aaaa))
             if ip[1] == 6:
-                x = ip[0].split(" ");
+                x = ip[0].split(" ")
                 # TODO: clean up
                 aaaa = dns.SOA(mname=x[0], rname=x[1], times=( int(x[2]), int(x[3]), int(x[4]), int(x[5]), int(x[6])) ) 
                 record.add_auth(RR(domain, QTYPE.SOA, ttl=60, rdata=aaaa))
@@ -106,7 +127,7 @@ class Resolver(ProxyResolver):
         self.dns_to_use += 1
 
     def resolve(self, request, handler):
-        #print("Type: " + repr(request.q.qtype))
+        #print("Type: " + repr(request))
         domain = str(request.q.qname)
                
         if request.q.qtype == 65:
@@ -121,11 +142,14 @@ class Resolver(ProxyResolver):
 
         #print("Type: " + type_name)
         if type_name == 'A':
+            Resolver.executor.submit(Resolver.log_stats, domain, handler.client_address[0])
             if "_http._tcp." in domain:
                 domain = domain.replace("_http._tcp.", "")
+            #
             self.handle_ipv4(domain, d)
             return d
         elif type_name == 'AAAA':
+            Resolver.executor.submit(Resolver.log_stats, domain, handler.client_address[0])
             if "_http._tcp." in domain:
                 domain = domain.replace("_http._tcp.", "")
             self.handle_ipv6(domain, d)

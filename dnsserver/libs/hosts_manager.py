@@ -107,10 +107,10 @@ class HostsManager:
 
     @staticmethod
     @transaction.atomic
-    def add_site(url: str, comment: str="", ttl: int=7000, ip: str="0.0.0.0", ipv6: str="::0"):        
+    def add_site(url: str, comment: str="", ttl: int=7000, ip: str="0.0.0.0", ipv6: str="::0"):
         if url == "" or url == "0.0.0.0":
             return
-        try: 
+        try:
             rand_ttl = ttl
             if ttl != -1:
                 rand_ttl = ttl + random.randint(100,1000)
@@ -184,7 +184,7 @@ class HostsManager:
                 return
         else:
             return
-        
+
         url = url + "."
         if columns_nr > 2:
             HostsManager.add_site(url=url, comment=' '.join(columns[2:columns_nr]), ttl=-1)
@@ -195,9 +195,21 @@ class HostsManager:
         self.threads.append(Thread(target=self.monitor_ttl))
         self.threads[0].start()
 
+    def start_auto_update_hosts(self):
+        self.threads.append(Thread(target=self.auto_update_hosts))
+        self.threads[1].start()
+
     @staticmethod
     def isTTLThreadRunning():
         return HostsManager.ttlThreadRunning
+
+    def auto_update_hosts(self):
+        from . import hosts_sources
+        while self.do_monitor_ttl:
+            hosts_sources.HostsSourcesUtils.clean_dl_dir()
+            hosts_sources.HostsSourcesUtils.download_hosts()
+            self.import_host_files("/tmp/hosts/")
+            sleep(60*60*14)
 
     def monitor_ttl(self):
         msg = 'Monitor started ...'

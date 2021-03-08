@@ -76,10 +76,17 @@ WSGI_APPLICATION = 'dnsserver.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/2.1/ref/settings/#databases
 
+DATABASE_ROUTERS = ['webui.dbrouters.MyDBRouter']
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+        'NAME': 'db.sqlite3',
+        'TIMEOUT': 5
+    },
+    'stats': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': 'stats.sqlite3',
         'TIMEOUT': 5
     }
 }

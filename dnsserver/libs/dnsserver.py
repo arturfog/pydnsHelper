@@ -27,6 +27,9 @@ from time import sleep
 from dnslib import DNSLabel, QTYPE, RR, dns
 from dnslib.proxy import ProxyResolver
 from dnslib.server import DNSServer
+from django.db.models import F
+
+from django.db import IntegrityError, transaction
 
 from webui.models import Logs
 from webui.models import Stats, ClientIP, StatsHosts
@@ -53,6 +56,7 @@ TYPE_LOOKUP = {
 
 class Resolver(ProxyResolver):
     executor = ThreadPoolExecutor(max_workers=5)
+    stats_cache = []
 
     def __init__(self, upstream):
         super().__init__(upstream, 53, 5)
@@ -72,13 +76,30 @@ class Resolver(ProxyResolver):
 
     @staticmethod
     def log_stats(hostname: str, ip: str):
+        print("log_stats: " + str(len(Resolver.stats_cache)))
         host = Resolver.get_or_none(StatsHosts,host=hostname)
         client = Resolver.get_or_none(ClientIP,ip=ip)
-        if client is None:
-            client = ClientIP.objects.create(ip=ip)
-        if host is None:
-            host = StatsHosts.objects.create(host=hostname)
-        Stats.objects.create(host=host, client=client)
+        
+        try:
+            if client is None:
+                client = ClientIP.objects.create(ip=ip)
+            if len(Resolver.stats_cache) >= 10:
+                with transaction.atomic():
+                    #
+                    Resolver.stats_cache.append([hostname, client])
+                    #
+                    for item in Resolver.stats_cache:
+                        host = Resolver.get_or_none(StatsHosts,host=item[0])
+                        if host is None:
+                            host = StatsHosts.objects.create(host=item[0])
+                        else:
+                            StatsHosts.objects.filter(host=item[0]).update(hits=F('hits')+1)
+                        Stats.objects.create(host=host, client=item[1])    
+                Resolver.stats_cache = []
+            else:
+                Resolver.stats_cache.append([hostname, client])
+        except Exception as e:
+            print(e)
 
     def handle_ipv4(self, domain: str, record):
         # switching between dns servers

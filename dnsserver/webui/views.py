@@ -9,7 +9,7 @@ from libs.dnsserver import SecureDNSServer
 
 from webui.models import Host
 from webui.models import HostSources
-from webui.models import Logs
+from webui.models import Logs, Stats, StatsHosts, ClientIP
 from django.shortcuts import redirect
 from django.db import connection
 
@@ -24,7 +24,7 @@ def index(request):
     hosts = None
     if db_table_exists("webui_host"):
         num_hosts = Host.objects.all().count()
-        hosts = Host.objects.filter(hits__gt=1).order_by('-hits')
+        hosts = StatsHosts.objects.filter(hits__gt=1).order_by('-hits')
         num_logs = Logs.objects.all().count()
 
     context = {
@@ -92,6 +92,17 @@ def logs(request):
 def about(request):
     """View function for home page of site."""
     return render(request, 'about.html')
+#####################################################################################
+def clients(request):
+    """View function for home page of site."""
+    num_clients = 0
+    num_clients = ClientIP.objects.all().count()
+    clients = ClientIP.objects.all()
+    context = {
+        'num_clients': num_clients,
+        'clients': clients
+    }
+    return render(request, 'clients.html', context=context)
 #####################################################################################
 def hosts(request):
     """View function for home page of site."""

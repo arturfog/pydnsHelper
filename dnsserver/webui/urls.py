@@ -8,6 +8,7 @@ urlpatterns = [
     path('start_server', views.start_server, name='start_server'),
     path('update_yt', views.update_yt, name='update_yt'),
     path('status', views.status, name='status'),
+    path('clients', views.clients, name='clients'),
     path('logs', views.logs, name='logs'),
     path('about', views.about, name='about'),
     path('hostsmgr', views.hosts, name='hostsmgr'),

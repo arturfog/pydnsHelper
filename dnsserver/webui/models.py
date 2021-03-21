@@ -57,6 +57,8 @@ class ClientIP(models.Model):
 class StatsHosts(models.Model):
     id = models.AutoField(primary_key=True)
     host = models.TextField(max_length=122, help_text='host', null=False)
+    created = models.DateTimeField(auto_now_add=True, null=False)
+    hits = models.IntegerField(help_text='hits', null=False, default=0)
 
 class BlockedClients(models.Model):
     id = models.AutoField(primary_key=True)

@@ -81,12 +81,12 @@ DATABASE_ROUTERS = ['webui.dbrouters.MyDBRouter']
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': 'db.sqlite3',
+        'NAME': '/tmp/db.sqlite3',
         'TIMEOUT': 5
     },
     'stats': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': 'stats.sqlite3',
+        'NAME': '/tmp/stats.sqlite3',
         'TIMEOUT': 5
     }
 }

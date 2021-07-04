@@ -99,6 +99,7 @@ class Resolver(ProxyResolver):
             else:
                 Resolver.stats_cache.append([hostname, client])
         except Exception as e:
+            Resolver.stats_cache = []
             print(e)
 
     def handle_ipv4(self, domain: str, record):
@@ -217,5 +218,5 @@ class SecureDNSServer:
             return False
         try:
             return SecureDNSServer.static_udp_server.isAlive()
-        except e as AttributeError:
+        except Exception as e:
             return False

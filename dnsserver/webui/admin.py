@@ -4,7 +4,7 @@ from django.urls import include, path
 
 from webui.models import Host, IPv4, IPv6
 from webui.models import HostSources
-from webui.models import Logs, ClientIP, Stats, BlockedClients, StatsHosts
+from webui.models import Logs, Client, Stats, BlockedClients, StatsHosts
 from libs.hosts_sources import HostsSourcesUtils
 from libs.hosts_manager import HostsManager
 from libs.dnsserver import SecureDNSServer
@@ -16,15 +16,14 @@ class HostSourcesAdmin(admin.ModelAdmin):
 
 class HostAdmin(admin.ModelAdmin):
     list_display = ('url', 'comment', 'created', 'hits', 'blocked')
-    #list_filter = ('url', 'ttl')
     search_fields = ('url', )
 
 class IPv4Admin(admin.ModelAdmin):
-    list_display = ('host', 'ip', 'ttl')
+    list_display = ('host', 'ip', 'ttl', 'last_updated')
     search_fields = ('ip', )
 
 class IPv6Admin(admin.ModelAdmin):
-    list_display = ('host', 'ip', 'ttl')
+    list_display = ('host', 'ip', 'ttl', 'last_updated')
     search_fields = ('ip', )
 
 class LogsAdmin(admin.ModelAdmin):
@@ -59,7 +58,7 @@ class StatsHostsAdmin(admin.ModelAdmin):
     list_display = ('host', )
     search_fields = ('host', )
 
-class ClientIPAdmin(admin.ModelAdmin):
+class ClientAdmin(admin.ModelAdmin):
     using = 'stats'
 
     def save_model(self, request, obj, form, change):
@@ -121,5 +120,5 @@ admin.site.register(Logs, LogsAdmin)
 admin.site.register(IPv4, IPv4Admin)
 admin.site.register(IPv6, IPv6Admin)
 admin.site.register(Stats, StatsAdmin)
-admin.site.register(ClientIP, ClientIPAdmin)
+admin.site.register(Client, ClientAdmin)
 admin.site.register(StatsHosts, StatsHostsAdmin)

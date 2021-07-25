@@ -32,7 +32,7 @@ from django.db.models import F
 from django.db import IntegrityError, transaction
 
 from webui.models import Logs
-from webui.models import Stats, ClientIP, StatsHosts
+from webui.models import Stats, Client, StatsHosts
 from concurrent.futures import ThreadPoolExecutor
 
 SERIAL_NO = int((datetime.utcnow() - datetime(1970, 1, 1)).total_seconds())
@@ -75,14 +75,14 @@ class Resolver(ProxyResolver):
             return None
 
     @staticmethod
-    def log_stats(hostname: str, ip: str):
+    def log_stats(hostname: str, ip: str, mac: str) -> None:
         print("log_stats: " + str(len(Resolver.stats_cache)))
         host = Resolver.get_or_none(StatsHosts,host=hostname)
-        client = Resolver.get_or_none(ClientIP,ip=ip)
+        client = Resolver.get_or_none(Client,ip=ip)
         
         try:
             if client is None:
-                client = ClientIP.objects.create(ip=ip)
+                client = Client.objects.create(ip=ip, mac=mac)
             if len(Resolver.stats_cache) >= 10:
                 with transaction.atomic():
                     #
@@ -164,14 +164,14 @@ class Resolver(ProxyResolver):
 
         #print("Type: " + type_name)
         if type_name == 'A':
-            Resolver.executor.submit(Resolver.log_stats, domain, handler.client_address[0])
+            Resolver.executor.submit(Resolver.log_stats, domain, handler.client_address[0], handler.client_address[1])
             if "_http._tcp." in domain:
                 domain = domain.replace("_http._tcp.", "")
             #
             self.handle_ipv4(domain, d)
             return d
         elif type_name == 'AAAA':
-            Resolver.executor.submit(Resolver.log_stats, domain, handler.client_address[0])
+            Resolver.executor.submit(Resolver.log_stats, domain, handler.client_address[0], handler.client_address[1])
             if "_http._tcp." in domain:
                 domain = domain.replace("_http._tcp.", "")
             self.handle_ipv6(domain, d)
@@ -192,6 +192,7 @@ def handle_sig(signum, frame):
 
 class SecureDNSServer:
     static_udp_server = None
+
     @staticmethod
     def start():
         #signal.signal(signal.SIGTERM, handle_sig)

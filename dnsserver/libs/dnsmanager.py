@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with pyDNSHelper.  If not, see <http://www.gnu.org/licenses/>.
 import random
+from django.utils import timezone
 import requests
 
 from . import hosts_manager
@@ -164,6 +165,7 @@ class DNSSEC():
 
     @staticmethod
     def resolveIPv6(domain: str):
+        # ip = SecureDNS.get_ip_from_cache6(domain)
         adresses = DNSSEC.resolve(domain)
         if adresses is None:
             return None
@@ -187,7 +189,7 @@ class SecureDNS(object):
     @staticmethod
     def add_to_ram_cache4(url: str, ip):
         if len(SecureDNS.ram_cache) < 2000:
-            if (time.time() - SecureDNS.cache_created) < 14400:
+            if (time.time() - SecureDNS.cache_created) < 7200:
                 if url not in SecureDNS.ram_cache:
                     print("Adding ipv4 : " + url + " to RAM cache (" +
                           str(len(SecureDNS.ram_cache)) + ")")
@@ -202,7 +204,7 @@ class SecureDNS(object):
     @staticmethod
     def add_to_ram_cache6(url: str, ip):
         if len(SecureDNS.ram_cache6) < 2000:
-            if (time.time() - SecureDNS.cache_created) < 14400:
+            if (time.time() - SecureDNS.cache_created) < 7200:
                 if url not in SecureDNS.ram_cache6:
                     print("Adding ipv6 : " + url + " to RAM cache (" +
                           str(len(SecureDNS.ram_cache6)) + ")")
@@ -285,9 +287,6 @@ class SecureDNS(object):
     @staticmethod
     def log_traffic(hostname: str):
         pass
-        #SecureDNS.lock.acquire()
-        #Host.objects.filter(url=hostname).update(hits=F('hits')+1)
-        #SecureDNS.lock.release()
 
     @staticmethod
     def get_ipv6_all(url: str):
@@ -303,8 +302,32 @@ class SecureDNS(object):
             return ip[0]
         ip = hosts_manager.HostsManager.get_ip(hostname)
         if ip is not None:
+            item = hosts_manager.HostsManager.ip4q.filter(host=hostname).first()
+            # calculate time diff
+            now = timezone.now()
+            diff = now - item.last_updated
+            minutes_days = diff.days * 24 * 60
+            minutes = int(diff.seconds/60)
+            minutes_total = minutes_days + minutes
+            if minutes_total >= 480:
+                # return empty to force update
+                return None
             SecureDNS.add_to_ram_cache4(hostname, [ip])
             print("Getting ipv4 [" + ip + "] for: " + hostname + " from cache")
+            # SecureDNS.executor.submit(SecureDNS.log_traffic, hostname)
+            return ip
+
+        return None
+
+    @staticmethod
+    def get_ip_from_cache6(hostname: str):
+        ip = SecureDNS.get_ip_from_ram_cache6(hostname)
+        if ip is not None:
+            return ip[0]
+        ip = hosts_manager.HostsManager.get_ipv6(hostname)
+        if ip is not None:
+            SecureDNS.add_to_ram_cache6(hostname, [ip])
+            print("Getting ipv6 [" + ip + "] for: " + hostname + " from cache")
             # SecureDNS.executor.submit(SecureDNS.log_traffic, hostname)
             return ip
 

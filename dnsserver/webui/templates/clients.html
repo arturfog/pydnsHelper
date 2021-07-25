@@ -48,7 +48,7 @@
           <tbody>
             {% for client in clients %}
             <tr>
-              <td>{{ client.ip }}</td>
+              <td><a href="client?id={{ client.id }}">{{ client.ip }}</a></td>
             </tr>
             {% endfor %}
           </tbody>

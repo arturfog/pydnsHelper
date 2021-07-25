@@ -21,12 +21,14 @@ class IPv4(models.Model):
     host =  models.ForeignKey('Host', on_delete=models.CASCADE)
     ip = models.CharField(max_length=16, help_text='IPv4', null=False, default="0.0.0.0")
     ttl = models.IntegerField(help_text='TTL', null=False, default=-1)
+    last_updated = models.DateTimeField(null=True,auto_now_add=True, blank=True)
 
 class IPv6(models.Model):
     id = models.AutoField(primary_key=True)
     host =  models.ForeignKey('Host', on_delete=models.CASCADE)
     ip = models.CharField(max_length=16, help_text='IPv4', null=False, default="0.0.0.0")
     ttl = models.IntegerField(help_text='TTL', null=False, default=-1)
+    last_updated = models.DateTimeField(null=True,auto_now_add=True, blank=True)
     
 
 class HostSources(models.Model):
@@ -46,9 +48,10 @@ class Logs(models.Model):
     def __str__(self):
         return "Log: %s %s" % (self.msg, self.timestamp)
 
-class ClientIP(models.Model):
+class Client(models.Model):
     id = models.AutoField(primary_key=True)
     ip = models.TextField(max_length=15, help_text='ip', null=False, unique=True)
+    mac = models.TextField(max_length=15, help_text='mac')
     
     def __str__(self):
         """String for representing the Model object."""
@@ -62,10 +65,10 @@ class StatsHosts(models.Model):
 
 class BlockedClients(models.Model):
     id = models.AutoField(primary_key=True)
-    clientIP = models.ForeignKey('ClientIP', on_delete=models.CASCADE)
+    clientIP = models.ForeignKey('Client', on_delete=models.CASCADE)
 
 class Stats(models.Model):
     id = models.AutoField(primary_key=True)
     host = models.ForeignKey('StatsHosts', on_delete=models.CASCADE)
     timestamp = models.DateTimeField(auto_now_add=True, null=False)
-    client = models.ForeignKey('ClientIP', on_delete=models.CASCADE)
+    client = models.ForeignKey('Client', on_delete=models.CASCADE)

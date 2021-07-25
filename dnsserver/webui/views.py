@@ -9,7 +9,7 @@ from libs.dnsserver import SecureDNSServer
 
 from webui.models import Host
 from webui.models import HostSources
-from webui.models import Logs, Stats, StatsHosts, ClientIP
+from webui.models import Logs, Stats, StatsHosts, Client
 from django.shortcuts import redirect
 from django.db import connection
 
@@ -65,6 +65,8 @@ def isTTLRunning(request):
 def start_ttl(request):
     hm = HostsManager()
     hm.start_ttl_monitoring()
+    hm.start_auto_update_hosts()
+    hm.start_auto_backup()
     return HttpResponse("done")
 #####################################################################################
 def status(request):
@@ -96,11 +98,13 @@ def about(request):
 def clients(request):
     """View function for home page of site."""
     num_clients = 0
-    num_clients = ClientIP.objects.all().count()
-    clients = ClientIP.objects.all()
+    num_clients = Client.objects.all().count()
+    clients = Client.objects.all()
+    stats = Stats.objects.order_by('client')[:100]
     context = {
         'num_clients': num_clients,
-        'clients': clients
+        'clients': clients,
+        'stats': stats
     }
     return render(request, 'clients.html', context=context)
 #####################################################################################
@@ -127,6 +131,8 @@ def import_hosts(request):
     return HttpResponse("done")
 #####################################################################################
 def start_server(request):
+    hm = HostsManager()
+    hm.restore_backup()
     SecureDNSServer.start()
     return HttpResponse("done")
 #####################################################################################

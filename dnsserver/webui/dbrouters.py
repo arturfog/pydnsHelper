@@ -3,7 +3,7 @@ class MyDBRouter(object):
         # Specify target database with field in_db in model's Meta class
         if model.__name__ == 'Stats':
             return 'stats'
-        if model.__name__ == 'ClientIP':
+        if model.__name__ == 'Client':
             return 'stats'
         if model.__name__ == 'StatsHosts':
             return 'stats'
@@ -13,7 +13,7 @@ class MyDBRouter(object):
         # Specify target database with field in_db in model's Meta class
         if model.__name__ == 'Stats':
             return 'stats'
-        if model.__name__ == 'ClientIP':
+        if model.__name__ == 'Client':
             return 'stats'
         if model.__name__ == 'StatsHosts':
             return 'stats'

@@ -117,8 +117,8 @@ class HostsManager:
                         continue
 
                     resp.append(i.ip)
-                return resp
-        return None
+                return [instance, resp]
+        return [None, None]
 
     @staticmethod
     def get_ipv6(url: str):
@@ -128,8 +128,8 @@ class HostsManager:
                 return "::0"
             query6 = HostsManager.ip6q.filter(host=instance).first()
             if query6:
-                return query6.ip
-        return None
+                return [instance, query6.ip]
+        return [None, None]
 
     @staticmethod
     @transaction.atomic
@@ -145,7 +145,8 @@ class HostsManager:
                 print("!!!!!!!!!!!!!! [new] #1 add_site url: [" + url + "] ip: " + ip + " ipv6: " + ipv6 + " ttl:" + str(ttl) + " comment: [" + comment + "]")
                 if ttl != -1:
                     host = Host.objects.create(url=url, comment=comment, created=timezone.now())
-                    IPv4.objects.create(host=host, ip=ip, ttl=rand_ttl)
+                    if ip != "0.0.0.0":
+                        IPv4.objects.create(host=host, ip=ip, ttl=rand_ttl)
                     if ipv6 != "::0":
                         IPv6.objects.create(host=host, ip=ipv6, ttl=rand_ttl)
                 else:

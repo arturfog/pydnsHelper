@@ -121,7 +121,6 @@ class Resolver(ProxyResolver):
         # 
         if ip is None:
             print("@@@@@@ Failed ipv4 query for " + domain)
-            pass
 
     def handle_ipv6(self, domain:str, record):
         # switching between dns servers
@@ -129,25 +128,29 @@ class Resolver(ProxyResolver):
             self.dns_to_use = 0
 
         record.add_question(dns.DNSQuestion(domain,qtype=28))
-        ip = self.dns_servers[self.dns_to_use].resolveIPV6(domain)
-
+        cached_ip = dnsmanager.SecureDNS.get_ip_from_cache6(domain)
+        if cached_ip is None:
+            ip = self.dns_servers[self.dns_to_use].resolveIPV6(domain)
+            print("ip6 #1: " + repr(ip))
+            self.dns_to_use += 1
+        else:
+            ip = [cached_ip, 28]
         # many servers
-        if ip is not None and len(ip) > 1:
+        if ip is not None and len(ip[0]) > 0:
             # check response type
             if ip[1] == 28:
-                print("ip6: " + repr(ip))
-                aaaa = dns.AAAA(ip[0])
-                record.add_answer(RR(domain, QTYPE.AAAA, ttl=360, rdata=aaaa))
+                print("ip6: " + repr(ip[0]))
+                for ans in ip[0]:
+                    aaaa = dns.AAAA(ans)
+                    record.add_answer(RR(domain, QTYPE.AAAA, ttl=360, rdata=aaaa))
             if ip[1] == 6:
-                x = ip[0].split(" ")
+                x = ip[0][0].split(" ")
                 # TODO: clean up
                 aaaa = dns.SOA(mname=x[0], rname=x[1], times=( int(x[2]), int(x[3]), int(x[4]), int(x[5]), int(x[6])) ) 
                 record.add_auth(RR(domain, QTYPE.SOA, ttl=60, rdata=aaaa))
         
         if ip is None:
             print("@@@@@@@ Failed ipv6 query for " + domain)
-
-        self.dns_to_use += 1
 
     def resolve(self, request, handler):
         #print("Type: " + repr(request))

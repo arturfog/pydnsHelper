@@ -142,7 +142,7 @@ class HostsManager:
                 rand_ttl = ttl + random.randint(480,1440)
             obj = HostsManager.get_or_none(url=url)
             if not obj:
-                print("!!!!!!!!!!!!!! [new] #1 add_site url: [" + url + "] ip: " + ip + " ipv6: " + ipv6 + " ttl:" + str(ttl) + " comment: [" + comment + "]")
+                # print("!!!!!!!!!!!!!! [new] #1 add_site url: [" + url + "] ip: " + ip + " ipv6: " + ipv6 + " ttl:" + str(ttl) + " comment: [" + comment + "]")
                 if ttl != -1:
                     host = Host.objects.create(url=url, comment=comment, created=timezone.now())
                     if ip != "0.0.0.0":
@@ -221,7 +221,7 @@ class HostsManager:
             url = columns[0]
 
         if url is not None:
-            if HostsManager.get_ip(url) is not None:
+            if HostsManager.get_ip(url)[0] is not None:
                 return
         else:
             return

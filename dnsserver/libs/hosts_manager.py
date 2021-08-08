@@ -13,6 +13,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with pyDNSHelper.  If not, see <http://www.gnu.org/licenses/>.
+from datetime import timedelta
 import re
 from time import sleep
 from threading import Thread
@@ -70,9 +71,19 @@ class HostsManager:
             if query4:
                 resp = []
                 for i in query4:
+                    # calculate time diff
+                    now = timezone.now()
+                    diff = now - i.last_updated
+                    minutes_days = diff.days * 24 * 60
+                    minutes = int(diff.seconds/60)
+                    minutes_total = minutes_days + minutes
+                    
+                    if minutes_total >= 480:
+                        # return empty to force update
+                        continue
                     resp.append(i.ip)
-                return resp
-        return None
+                return [instance, resp]
+        return [None, None]
 
     @staticmethod
     def get_ip(url: str):
@@ -82,8 +93,8 @@ class HostsManager:
                 return "0.0.0.0"
             query4 = HostsManager.ip4q.filter(host=instance).first()
             if query4:
-                return query4.ip
-        return None
+                return [instance, query4.ip]
+        return [None, None]
 
     @staticmethod
     def get_ipv6_all(url: str):
@@ -95,6 +106,16 @@ class HostsManager:
             if query6:
                 resp = []
                 for i in query6:
+                    # calculate time diff
+                    now = timezone.now()
+                    diff = now - i.last_updated
+                    minutes_days = diff.days * 24 * 60
+                    minutes = int(diff.seconds/60)
+                    minutes_total = minutes_days + minutes
+                    if minutes_total >= 480:
+                        # return empty to force update
+                        continue
+
                     resp.append(i.ip)
                 return resp
         return None
@@ -112,35 +133,47 @@ class HostsManager:
 
     @staticmethod
     @transaction.atomic
-    def add_site(url: str, comment: str="", ttl: int=7000, ip: str="0.0.0.0", ipv6: str="::0"):
+    def add_site(url: str, comment: str="", ttl: int=60, ip: str="0.0.0.0", ipv6: str="::0"):
         if url == "" or url == "0.0.0.0":
             return
         try:
             rand_ttl = ttl
             if ttl != -1:
-                rand_ttl = ttl + random.randint(1,100)
+                rand_ttl = ttl + random.randint(480,1440)
             obj = HostsManager.get_or_none(url=url)
             if not obj:
-                #if __debug__: print("!!!!!!!!!!!!!! [new] add_site url: [" + url + "] ip: " + ip + " ipv6: " + ipv6 + " ttl:" + str(ttl) + " comment: [" + comment + "]")
+                print("!!!!!!!!!!!!!! [new] #1 add_site url: [" + url + "] ip: " + ip + " ipv6: " + ipv6 + " ttl:" + str(ttl) + " comment: [" + comment + "]")
                 if ttl != -1:
-                    host = Host.objects.create(url=url, comment=comment,hits=0, created=timezone.now())
+                    host = Host.objects.create(url=url, comment=comment, created=timezone.now())
                     IPv4.objects.create(host=host, ip=ip, ttl=rand_ttl)
                     if ipv6 != "::0":
                         IPv6.objects.create(host=host, ip=ipv6, ttl=rand_ttl)
                 else:
-                    host = Host.objects.create(url=url, comment=comment,hits=0, created=timezone.now(), blocked=True)
+                    host = Host.objects.create(url=url, comment=comment, created=timezone.now(), blocked=True)
             else:
                 if obj.blocked == False:
+                    updated = timezone.now()
+                    rand_ttl += random.randint(240,480)
+                    # IPv6
                     if(ipv6 != "::0"):
-                        #if __debug__: print("!!!!!!!!!!!!!! [update ipv6] add_site url: [" + url + "] ipv6: " + ipv6)
-                        # IPv6.objects.create(host=obj, ip=ipv6, ttl=rand_ttl)
-                        IPv6.objects.filter(id=obj.id).update(ip=ipv6, last_updated=timezone.now())
+                        ipv6_objs = IPv6.objects.filter(host=obj)
+                        for item in ipv6_objs:
+                            if item.ip == ipv6:
+                                time_forward = timedelta.timedelta(minutes=rand_ttl)
+                                item.update(ip=ipv6, ttl=rand_ttl, last_updated=updated + time_forward)
+                                return
+                        IPv6.objects.create(host=obj, ip=ipv6, ttl=rand_ttl, last_updated=updated)
+                    # IPv4
                     elif(ip != "0.0.0.0"):
-                        # if __debug__: print("!!!!!!!!!!!!!! [update ipv4] add_site url: [" + url + "] ip: " + ip)
-                        # IPv4.objects.create(host=obj, ip=ip, ttl=rand_ttl)
-                        IPv4.objects.filter(id=obj.id).update(ip=ip, last_updated=timezone.now())
-        except UnicodeEncodeError:
-            return
+                        ipv4_objs = IPv4.objects.filter(host=obj).all()
+                        for item in ipv4_objs:
+                            if item.ip == ip:
+                                time_forward = timedelta.timedelta(minutes=rand_ttl)
+                                item.update(ip=ip, ttl=rand_ttl, last_updated=updated + time_forward)
+                                return
+                        IPv4.objects.create(host=obj, ip=ip, ttl=rand_ttl, last_updated=updated)
+        except UnicodeEncodeError as e:
+            print(str(e))
 
     @staticmethod
     def remove_site(url: str):
@@ -219,12 +252,12 @@ class HostsManager:
         while self.do_monitor_ttl:
             # check if after 3am
             now = timezone.now()
-            if now.hour == 3:
+            if now.hour == 5:
                 msg = 'Auto hosts update ...'
                 Logs.objects.create(msg=msg)
                 hosts_sources.HostsSourcesUtils.clean_dl_dir()
                 hosts_sources.HostsSourcesUtils.download_hosts()
-                self.import_host_files("/tmp/hosts/")
+                #self.import_host_files("/tmp/hosts/")
                 sleep(60*60)
 
     @staticmethod
@@ -261,8 +294,8 @@ class HostsManager:
             if os.path.exists(self.STATS_PATH):
                 shutil.copy2(self.STATS_PATH, DST_NAME)
 
-            # sleep for 12h
-            sleep(12*60*60)
+            # sleep for 8h
+            sleep(8*60*60)
             
     # removes all items which expired based on ttl
     def monitor_ttl(self):
@@ -280,17 +313,15 @@ class HostsManager:
             with transaction.atomic():
                 for item in hosts:
                 #
-                    diff = now - item.created
-                    minutes_days = diff.days * 24 * 60
-                    minutes = int(diff.seconds/60)
-                    minutes_total = minutes_days + minutes
-                    #
-                    ip4 = HostsManager.ip4q.order_by('ttl').filter(host__id=item.id).first()
-                    if ip4.ttl - minutes_total <= 0:
-                        item.delete()
-                        deleted_items += 1
-                    if not ip4:
-                        item.delete()
+                    ips = IPv4.objects.filter(host=item).all()
+                    for i in ips:
+                        diff = now - i.last_updated
+                        minutes_days = diff.days * 24 * 60
+                        minutes = int(diff.seconds/60)
+                        minutes_total = minutes_days + minutes
+                        if minutes_total >= 2880:
+                            deleted_items += 1
+                            i.delete()
             db.close_old_connections()
             
             # wait ten minutes for next update
@@ -305,5 +336,5 @@ class HostsManager:
         all_entries = Host.objects.all()
         with open(output_path, "w", encoding="utf-8") as hosts_file:
             for host in all_entries:
-                ip = HostsManager.get_ip(host.url)
+                host_instance, ip = HostsManager.get_ip(host.url)
                 hosts_file.write(ip + " " + host.url + "\n")

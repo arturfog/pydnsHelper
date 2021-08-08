@@ -75,14 +75,14 @@ class Resolver(ProxyResolver):
             return None
 
     @staticmethod
-    def log_stats(hostname: str, ip: str, mac: str) -> None:
+    def log_stats(hostname: str, ip: str) -> None:
         print("log_stats: " + str(len(Resolver.stats_cache)))
         host = Resolver.get_or_none(StatsHosts,host=hostname)
         client = Resolver.get_or_none(Client,ip=ip)
         
         try:
             if client is None:
-                client = Client.objects.create(ip=ip, mac=mac)
+                client = Client.objects.create(ip=ip, mac='00:00:00:00:00:00')
             if len(Resolver.stats_cache) >= 10:
                 with transaction.atomic():
                     #
@@ -108,7 +108,10 @@ class Resolver(ProxyResolver):
             self.dns_to_use = 0
 
         record.add_question(dns.DNSQuestion(domain,qtype=1))
-        ip = self.dns_servers[self.dns_to_use].resolveIPV4(domain)
+        ip = dnsmanager.SecureDNS.get_ip_from_cache(domain)
+        if ip is None:
+            ip = self.dns_servers[self.dns_to_use].resolveIPV4(domain)
+            self.dns_to_use += 1
 
         # many servers
         if ip is not None and len(ip) > 0:
@@ -119,8 +122,6 @@ class Resolver(ProxyResolver):
         if ip is None:
             print("@@@@@@ Failed ipv4 query for " + domain)
             pass
-
-        self.dns_to_use += 1
 
     def handle_ipv6(self, domain:str, record):
         # switching between dns servers
@@ -163,18 +164,17 @@ class Resolver(ProxyResolver):
         d.header.set_ra(1)
 
         #print("Type: " + type_name)
-        if type_name == 'A':
-            Resolver.executor.submit(Resolver.log_stats, domain, handler.client_address[0], handler.client_address[1])
-            if "_http._tcp." in domain:
+
+        if "_http._tcp." in domain:
                 domain = domain.replace("_http._tcp.", "")
-            #
+
+        if type_name == 'A':
             self.handle_ipv4(domain, d)
+            Resolver.executor.submit(Resolver.log_stats, domain, handler.client_address[0])
             return d
         elif type_name == 'AAAA':
-            Resolver.executor.submit(Resolver.log_stats, domain, handler.client_address[0], handler.client_address[1])
-            if "_http._tcp." in domain:
-                domain = domain.replace("_http._tcp.", "")
             self.handle_ipv6(domain, d)
+            Resolver.executor.submit(Resolver.log_stats, domain, handler.client_address[0])
             return d
         else:
             #print(repr(request.q))

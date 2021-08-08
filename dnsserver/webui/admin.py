@@ -15,7 +15,7 @@ class HostSourcesAdmin(admin.ModelAdmin):
     search_fields = ('url',)
 
 class HostAdmin(admin.ModelAdmin):
-    list_display = ('url', 'comment', 'created', 'hits', 'blocked')
+    list_display = ('url', 'comment', 'created', 'blocked')
     search_fields = ('url', )
 
 class IPv4Admin(admin.ModelAdmin):

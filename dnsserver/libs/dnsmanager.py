@@ -14,6 +14,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with pyDNSHelper.  If not, see <http://www.gnu.org/licenses/>.
+from io import BytesIO
 import random
 from django.utils import timezone
 import requests
@@ -27,8 +28,11 @@ from django.core.exceptions import ObjectDoesNotExist
 from multiprocessing import Lock
 from concurrent.futures import ThreadPoolExecutor
 import datetime
-
 import time
+from webui.models import IPv4
+import timeit
+import pycurl
+from io import BytesIO
 
 __version__ = '0.0.2'
 
@@ -143,14 +147,6 @@ class DNSSEC():
 
     @staticmethod
     def resolveIPv4(domain: str):
-        ip = SecureDNS.get_ip_from_cache(domain)
-        if ip is not None:
-            ip = ip.replace("'", "")
-            ip = ip.replace("[", "")
-            ip = ip.replace("]", "")
-            ip = ip.replace(" ", "")
-            return ip.split(",")
-
         adresses_ipv4 = []
         adresses = DNSSEC.resolve(domain)
         if adresses is None:
@@ -234,7 +230,7 @@ class SecureDNS(object):
         return None
 
     @staticmethod
-    def prepare_hostname(hostname: str):
+    def prepare_hostname(hostname: str) -> str:
         '''verify the hostname is well-formed'''
         hostname = hostname.rstrip('.')  # strip trailing dot if present
 
@@ -244,36 +240,31 @@ class SecureDNS(object):
         for label in hostname.split('.'):  # test length of each label
             if not(1 <= len(label) <= 63):
                 raise InvalidHostName
-        try:
-            return hostname.encode('ascii')
-        except UnicodeEncodeError:
-            raise InvalidHostName
+
+        return hostname
+        
 
     @staticmethod
     def add_url_to_cache_func(url: str, ip: str):
-        # msg = 'adding url ipv4: {}, with ip: {} to cache'.format(url, ip)
         SecureDNS.lock.acquire()
         try:
             hosts_manager.HostsManager.add_site(url=url, ip=ip)
-            # Logs.objects.create(msg=msg)
             SecureDNS.lock.release()
         except:
             SecureDNS.lock.release()
 
     @staticmethod
     def add_url_to_cache_func6(url: str, ip: str):
-        # msg = 'adding url ipv6: {}, with ip: {} to cache'.format(url, ip)
         SecureDNS.lock.acquire()
         try:
-            hosts_manager.HostsManager.add_site(url=url, ipv6=ip)
-            # Logs.objects.create(msg=msg)
+            hosts_manager.HostsManager.add_site(url=url, ipv6=ip)            
             SecureDNS.lock.release()
         except:
             SecureDNS.lock.release()
 
     @staticmethod
     def add_url_to_cache(url: str, ip: str):
-        # print("&&&&&&&&&&&&& Adding ipv4: " + url + " to cache")
+        print("&&&&&&&&&&&&& Adding ipv4: " + url + " to cache, ip: " + str(ip))
         SecureDNS.executor.submit(
             SecureDNS.add_url_to_cache_func, url, ip)
         #SecureDNS.add_to_ram_cache4(url, ip)
@@ -283,10 +274,6 @@ class SecureDNS(object):
         print("&&&&&&&&&&&&& Adding ipv6: " + url + " to cache")
         SecureDNS.executor.submit(
             SecureDNS.add_url_to_cache_func6, url, ipv6)
-
-    @staticmethod
-    def log_traffic(hostname: str):
-        pass
 
     @staticmethod
     def get_ipv6_all(url: str):
@@ -299,24 +286,12 @@ class SecureDNS(object):
     def get_ip_from_cache(hostname: str):
         ip = SecureDNS.get_ip_from_ram_cache4(hostname)
         if ip is not None:
-            return ip[0]
-        ip = hosts_manager.HostsManager.get_ip(hostname)
-        if ip is not None:
-            item = hosts_manager.HostsManager.ip4q.filter(host=hostname).first()
-            # calculate time diff
-            now = timezone.now()
-            diff = now - item.last_updated
-            minutes_days = diff.days * 24 * 60
-            minutes = int(diff.seconds/60)
-            minutes_total = minutes_days + minutes
-            if minutes_total >= 480:
-                # return empty to force update
-                return None
-            SecureDNS.add_to_ram_cache4(hostname, [ip])
-            print("Getting ipv4 [" + ip + "] for: " + hostname + " from cache")
-            # SecureDNS.executor.submit(SecureDNS.log_traffic, hostname)
             return ip
-
+        _, ip = hosts_manager.HostsManager.get_ip_all(hostname)
+        if ip is not None:
+            SecureDNS.add_to_ram_cache4(hostname, ip)
+            print("Getting ipv4 [" + str(ip) + "] for: " + hostname + " from cache")
+            return ip
         return None
 
     @staticmethod
@@ -328,21 +303,6 @@ class SecureDNS(object):
         if ip is not None:
             SecureDNS.add_to_ram_cache6(hostname, [ip])
             print("Getting ipv6 [" + ip + "] for: " + hostname + " from cache")
-            # SecureDNS.executor.submit(SecureDNS.log_traffic, hostname)
-            return ip
-
-        return None
-
-    @staticmethod
-    def get_all_ip_from_cache(hostname: str):
-        ip = SecureDNS.get_ip_from_ram_cache4(hostname)
-        if ip is not None:
-            return ip
-        ip = hosts_manager.HostsManager.get_ip_all(hostname)
-        if ip is not None:
-            SecureDNS.add_to_ram_cache4(hostname, ip)
-            print("Getting ipv4 for: " + hostname + " from cache")
-            # SecureDNS.executor.submit(SecureDNS.log_traffic, hostname)
             return ip
 
         return None
@@ -360,13 +320,11 @@ class SecureDNS(object):
 
         return None
 
-
     @staticmethod
     def get_all_ipv6_from_cache(hostname: str):
         ip = SecureDNS.get_ipv6_all(hostname)
         if ip is not None:
             print("Getting ipv6 for: " + hostname + " from cache")
-            # SecureDNS.executor.submit(SecureDNS.log_traffic, hostname)
             return ip
 
         return None
@@ -429,11 +387,10 @@ class SecureDNS(object):
 
     def resolveIPV4(self, hostname: str):
         '''return ip address(es) of hostname'''
+        b = BytesIO()
+        c = pycurl.Curl()
+
         tmp_hostname = hostname # hostname.replace("www.", "")
-        ip = SecureDNS.get_all_ip_from_cache(tmp_hostname)
-        if ip is not None:
-            return ip
-        
         if tmp_hostname not in self.pending_requests_4:
             print(">>>>>>>> [" + self.provider_name + "] IPv4 FOR " + tmp_hostname + " NOT IN CACHE >>>>>>>>>>")
             self.pending_requests_4.append(tmp_hostname)
@@ -442,7 +399,7 @@ class SecureDNS(object):
             for i in range(5):
                 time.sleep(1)
                 print(">>>>>>>> [" + self.provider_name + "]  IPv4 FOR " + tmp_hostname + " NOT IN CACHE >>>>>> WAITING (" + str(i) + ") >>>>")
-                ip = SecureDNS.get_all_ip_from_cache(tmp_hostname)
+                _, ip = SecureDNS.get_ip_from_cache(tmp_hostname)
                 if ip is not None:
                     if tmp_hostname in self.pending_requests_4:
                         self.pending_requests_4.remove(tmp_hostname)
@@ -456,20 +413,24 @@ class SecureDNS(object):
 
         connection.create_connection = patched_create_connection
         hostname = SecureDNS.prepare_hostname(hostname)
-        self.params.update({'name': hostname})
-        self.params.update({'type': '1'})
-
-        r = None
         try:
-            r = SecureDNS.session.get(self.url, params=self.params, timeout=5)
+            #
+            c.setopt(c.URL, self.url+"?name=" + str(hostname) + self.params_str)
+            c.setopt(c.WRITEDATA, b)
+            c.setopt(c.TIMEOUT, 3)
+            c.perform()
+            #
             connection.create_connection = _orig_create_connection
         except requests.exceptions.ConnectionError as e:
+            c.close()
             return None
-        if r.status_code == 200:
-            response = r.json()
-            
+        #
+        if c.getinfo(pycurl.HTTP_CODE) == 200:
+            c.close()
+            response_str = b.getvalue()
+            import json
+            response = json.loads(response_str)
             print(response)
-            
             if response['Status'] == NOERROR:
                 answers = []
                 if 'Answer' in response:
@@ -484,20 +445,25 @@ class SecureDNS(object):
                 if answers is []:    
                     return None
                 return answers
+        #
         if tmp_hostname in self.pending_requests_4:
             self.pending_requests_4.remove(tmp_hostname)
+        #
+        c.close()
         return None
 
 # curl -vk "https://dns-querycloudflare-dns.com/dns-query?ct=application/dns-json&type=1&name=facebook.com"
 class SecureDNSCloudflare(SecureDNS):
     def __init__(
             self,
+            query_type=1,
             ct='application/dns-json'
     ):
-        self.url = 'https://cloudflare-dns.com/dns-query'
+        self.url: str = 'https://cloudflare-dns.com/dns-query'
         self.params = {
             'ct': ct
         }
+        self.params_str = "&type=" + str(query_type) + "&ct=" + ct
         self.provider_name = "cloudflare"
         self.response_keys = ('name', 'type', 'TTL', 'data')
         self.pending_requests_4 = []
@@ -513,13 +479,14 @@ class SecureDNSGoogle(SecureDNS):
         edns_client_subnet='0.0.0.0/0',
         random_padding=True,
     ):
-        self.url = 'https://dns.google.com/resolve'
+        self.url: str = 'https://dns.google.com/resolve'
         self.params = {
             'type': query_type,
             'cd': cd,
             'edns_client_subnet': edns_client_subnet,
             'random_padding': random_padding,
         }
+        self.params_str = "&type=" + str(query_type) + "&cd=" + str(cd) + "&random_padding=" + str(random_padding)
         self.provider_name = "google"
         self.response_keys = ('name', 'type', 'TTL', 'data')
         self.pending_requests_4 = []
@@ -533,11 +500,12 @@ class SecureQuad9(SecureDNS):
         query_type=1,
         cd=False
     ):
-        self.url = 'https://dns.quad9.net:5053/dns-query'
+        self.url: str = 'https://dns.quad9.net:5053/dns-query'
         self.params = {
             'type': query_type,
             'cd': cd
         }
+        self.params_str = "&type=" + str(query_type) + "&cd=" + str(cd)
         self.provider_name = "quad9"
         self.response_keys = ('name', 'type', 'TTL', 'data')
         self.pending_requests_4 = []

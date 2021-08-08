@@ -6,7 +6,6 @@ class Host(models.Model):
     url = models.CharField(max_length=200, help_text='URL', null=False, unique=True)
     comment = models.CharField(max_length=250, help_text='Comment', null=True)
     created = models.DateTimeField(null=True,auto_now_add=True, blank=True)
-    hits = models.IntegerField(help_text='Hits', null=False, default=0)
     blocked = models.BooleanField(null=False, default=False)
     indexes = [
         models.Index(fields=['url',]),

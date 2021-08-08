@@ -111,7 +111,6 @@ class Resolver(ProxyResolver):
         ip = dnsmanager.SecureDNS.get_ip_from_cache(domain)
         if ip is None:
             ip = self.dns_servers[self.dns_to_use].resolveIPV4(domain)
-            self.dns_to_use += 1
 
         # many servers
         if ip is not None and len(ip) > 0:
@@ -121,6 +120,8 @@ class Resolver(ProxyResolver):
         # 
         if ip is None:
             print("@@@@@@ Failed ipv4 query for " + domain)
+
+        self.dns_to_use += 1
 
     def handle_ipv6(self, domain:str, record):
         # switching between dns servers
@@ -132,7 +133,6 @@ class Resolver(ProxyResolver):
         if cached_ip is None:
             ip = self.dns_servers[self.dns_to_use].resolveIPV6(domain)
             print("ip6 #1: " + repr(ip))
-            self.dns_to_use += 1
         else:
             ip = [cached_ip, 28]
         # many servers
@@ -151,6 +151,8 @@ class Resolver(ProxyResolver):
         
         if ip is None:
             print("@@@@@@@ Failed ipv6 query for " + domain)
+
+        self.dns_to_use += 1
 
     def resolve(self, request, handler):
         #print("Type: " + repr(request))

@@ -381,7 +381,7 @@ class SecureDNS(object):
             for i in range(5):
                 time.sleep(1)
                 print(">>>>>>>> [" + self.provider_name + "]  IPv4 FOR " + tmp_hostname + " NOT IN CACHE >>>>>> WAITING (" + str(i) + ") >>>>")
-                _, ip = SecureDNS.get_ip_from_cache(tmp_hostname)
+                ip = SecureDNS.get_ip_from_cache(tmp_hostname)
                 if ip is not None:
                     if tmp_hostname in self.pending_requests_4:
                         self.pending_requests_4.remove(tmp_hostname)

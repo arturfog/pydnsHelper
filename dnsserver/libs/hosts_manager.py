@@ -66,7 +66,7 @@ class HostsManager:
         instance = HostsManager.get_or_none(url=url)
         if instance:
             if instance.blocked == True:
-                return ["0.0.0.0"]
+                return [None, ["0.0.0.0"]]
             query4 = HostsManager.ip4q.filter(host=instance).all()
             if query4:
                 resp = []

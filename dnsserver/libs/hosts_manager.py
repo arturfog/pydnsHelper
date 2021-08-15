@@ -13,7 +13,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with pyDNSHelper.  If not, see <http://www.gnu.org/licenses/>.
-from datetime import timedelta
+from datetime import datetime, date, time, timedelta
 import re
 from time import sleep
 from threading import Thread
@@ -117,8 +117,10 @@ class HostsManager:
                         continue
 
                     resp.append(i.ip)
-                return [instance, resp]
-        return [None, None]
+                if len(resp) == 0:
+                    resp = [None]
+                return resp
+        return [None]
 
     @staticmethod
     def get_ipv6(url: str):
@@ -142,7 +144,7 @@ class HostsManager:
                 rand_ttl = ttl + random.randint(480,1440)
             obj = HostsManager.get_or_none(url=url)
             if not obj:
-                # print("!!!!!!!!!!!!!! [new] #1 add_site url: [" + url + "] ip: " + ip + " ipv6: " + ipv6 + " ttl:" + str(ttl) + " comment: [" + comment + "]")
+                print("!!!!!!!!!!!!!! [new] #1 add_site url: [" + url + "] ip: " + ip + " ipv6: " + ipv6 + " ttl:" + str(ttl) + " comment: [" + comment + "]")
                 if ttl != -1:
                     host = Host.objects.create(url=url, comment=comment, created=timezone.now())
                     if ip != "0.0.0.0":
@@ -155,26 +157,28 @@ class HostsManager:
                 if obj.blocked == False:
                     updated = timezone.now()
                     rand_ttl += random.randint(240,480)
+                    time_forward = timedelta(minutes=rand_ttl)
                     # IPv6
                     if(ipv6 != "::0"):
                         ipv6_objs = IPv6.objects.filter(host=obj)
                         for item in ipv6_objs:
                             if item.ip == ipv6:
-                                time_forward = timedelta.timedelta(minutes=rand_ttl)
-                                item.update(ip=ipv6, ttl=rand_ttl, last_updated=updated + time_forward)
+                                IPv6.objects.filter(id=item.id).update(ip=ipv6, ttl=rand_ttl, last_updated=updated + time_forward)
                                 return
                         IPv6.objects.create(host=obj, ip=ipv6, ttl=rand_ttl, last_updated=updated)
                     # IPv4
                     elif(ip != "0.0.0.0"):
+                        #print("!!!!!!!!!!!!!! [new] #2 add_site (hostname exists) url: [" + url + "] ip: " + ip + " ipv6: " + ipv6 + " ttl:" + str(ttl) + " comment: [" + comment + "]")
                         ipv4_objs = IPv4.objects.filter(host=obj).all()
                         for item in ipv4_objs:
                             if item.ip == ip:
-                                time_forward = timedelta.timedelta(minutes=rand_ttl)
-                                item.update(ip=ip, ttl=rand_ttl, last_updated=updated + time_forward)
+                                #print("!!!!!!!!!!!!!! [new] #3 add_site (hostname exists and updating timestamp) url: [" + url + "] ip: " + ip + " ipv6: " + ipv6 + " ttl:" + str(ttl) + " comment: [" + comment + "]")
+                                IPv4.objects.filter(id=item.id).update(ip=ip, ttl=rand_ttl, last_updated=updated + time_forward)
                                 return
+                        print("!!!!!!!!!!!!!! [new] #4 add_site (hostname exists but no ips found) url: [" + url + "] ip: " + ip + " ipv6: " + ipv6 + " ttl:" + str(ttl) + " comment: [" + comment + "]")
                         IPv4.objects.create(host=obj, ip=ip, ttl=rand_ttl, last_updated=updated)
-        except UnicodeEncodeError as e:
-            print(str(e))
+        except Exception as e:
+            print("#!#!#!#!#!##!# add_site exception " + str(e))
 
     @staticmethod
     def remove_site(url: str):

@@ -277,23 +277,26 @@ class SecureDNS(object):
 
     @staticmethod
     def get_ip_from_cache(hostname: str):
+        print("#1 Getting ipv4 for: " + hostname + " from sql cache")
         ip = SecureDNS.get_ip_from_ram_cache4(hostname)
-        if ip is not None:
+        if ip is not None and len(ip) > 0:
+            print("#2 Getting ipv4 for: " + hostname + " from sql cache (found in ram)")
             return ip
         _, ip = hosts_manager.HostsManager.get_ip_all(hostname)
-        if ip is not None:
+        print("#3 Getting ipv4 for: " + hostname + " from sql cache ip: " + str(ip))
+        if ip is not None and len(ip) > 0:
             SecureDNS.add_to_ram_cache4(hostname, ip)
-            print("Getting ipv4 [" + str(ip) + "] for: " + hostname + " from cache")
+            print("Getting ipv4 [" + str(ip) + "] for: " + hostname + " from sql cache")
             return ip
         return None
 
     @staticmethod
     def get_ip_from_cache6(hostname: str):
         ip = SecureDNS.get_ip_from_ram_cache6(hostname)
-        if ip is not None:
+        if ip is not None and len(ip) > 0 and ip[0] is not None:
             return ip
-        _, ip = hosts_manager.HostsManager.get_ipv6_all(hostname)
-        if ip is not None:
+        ip = hosts_manager.HostsManager.get_ipv6_all(hostname)
+        if ip is not None and len(ip) > 0 and ip[0] is not None:
             SecureDNS.add_to_ram_cache6(hostname, ip)
             print("Getting ipv6 [" + str(ip) + "] for: " + hostname + " from cache")
             return ip
@@ -331,7 +334,7 @@ class SecureDNS(object):
             params_str += "&"+ i + "=" + str(self.params[i])
         c.setopt(c.URL, self.url+"?name=" + str(hostname) + params_str)
         c.setopt(c.WRITEDATA, b)
-        c.setopt(c.TIMEOUT, 3)
+        c.setopt(c.TIMEOUT, 5)
         c.perform()
         #
         connection.create_connection = _orig_create_connection
@@ -401,7 +404,7 @@ class SecureDNS(object):
             params_str += "&"+ i + "=" + str(self.params[i])
         c.setopt(c.URL, self.url+"?name=" + str(hostname) + params_str)
         c.setopt(c.WRITEDATA, b)
-        c.setopt(c.TIMEOUT, 3)
+        c.setopt(c.TIMEOUT, 5)
         c.perform()
         #
         connection.create_connection = _orig_create_connection

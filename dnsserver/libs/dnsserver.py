@@ -102,11 +102,13 @@ class Resolver(ProxyResolver):
             Resolver.stats_cache = []
             print(e)
 
-    def handle_ipv4(self, domain: str, record):
+    def change_server(self):
+        self.dns_to_use += 1
         # switching between dns servers
         if self.dns_to_use >= 3:
             self.dns_to_use = 0
 
+    def handle_ipv4(self, domain: str, record):
         record.add_question(dns.DNSQuestion(domain,qtype=1))
         ip = dnsmanager.SecureDNS.get_ip_from_cache(domain)
         if ip is None:
@@ -120,14 +122,9 @@ class Resolver(ProxyResolver):
         # 
         if ip is None:
             print("@@@@@@ Failed ipv4 query for " + domain)
-
-        self.dns_to_use += 1
+        self.change_server()
 
     def handle_ipv6(self, domain:str, record):
-        # switching between dns servers
-        if self.dns_to_use >= 3:
-            self.dns_to_use = 0
-
         record.add_question(dns.DNSQuestion(domain,qtype=28))
         cached_ip = dnsmanager.SecureDNS.get_ip_from_cache6(domain)
         if cached_ip is None:
@@ -136,7 +133,7 @@ class Resolver(ProxyResolver):
         else:
             ip = [cached_ip, 28]
         # many servers
-        if ip is not None and len(ip[0]) > 0:
+        if ip is not None and len(ip[0]) > 0 and ip[0] is not None:
             # check response type
             if ip[1] == 28:
                 print("ip6: " + repr(ip[0]))
@@ -151,8 +148,7 @@ class Resolver(ProxyResolver):
         
         if ip is None:
             print("@@@@@@@ Failed ipv6 query for " + domain)
-
-        self.dns_to_use += 1
+        self.change_server()
 
     def resolve(self, request, handler):
         #print("Type: " + repr(request))

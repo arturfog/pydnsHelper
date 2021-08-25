@@ -396,6 +396,7 @@ class SecureDNS(object):
 
         hostname_orig = tmp_hostname
 
+        self.params.update({'type': 'A'})
         connection.create_connection = patched_create_connection
         hostname = SecureDNS.prepare_hostname(hostname)
         #

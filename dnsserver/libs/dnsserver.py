@@ -105,7 +105,7 @@ class Resolver(ProxyResolver):
     def change_server(self):
         self.dns_to_use += 1
         # switching between dns servers
-        if self.dns_to_use >= 3:
+        if self.dns_to_use >= len(self.dns_servers):
             self.dns_to_use = 0
 
     def handle_ipv4(self, domain: str, record):
@@ -113,7 +113,12 @@ class Resolver(ProxyResolver):
         ip = dnsmanager.SecureDNS.get_ip_from_cache(domain)
         if ip is None:
             ip = self.dns_servers[self.dns_to_use].resolveIPV4(domain)
-
+        
+        # try again
+        if ip is None:
+            self.change_server()
+            ip = self.dns_servers[self.dns_to_use].resolveIPV4(domain)
+        
         # many servers
         if ip is not None and len(ip) > 0:
             for ans in ip:
@@ -121,6 +126,7 @@ class Resolver(ProxyResolver):
                 record.add_answer(RR(domain, QTYPE.A, ttl=360, rdata=a))
         # 
         if ip is None:
+            dnsmanager.SecureDNS.add_url_to_cache(domain, "0.0.0.0")
             print("@@@@@@ Failed ipv4 query for " + domain)
         self.change_server()
 

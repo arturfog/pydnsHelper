@@ -300,7 +300,7 @@ class HostsManager:
                 shutil.copy2(self.STATS_PATH, DST_NAME)
 
             # sleep for 8h
-            sleep(8*60*60)
+            sleep(12*60*60)
             
     # removes all items which expired based on ttl
     def monitor_ttl(self):

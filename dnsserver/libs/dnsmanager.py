@@ -181,6 +181,8 @@ class SecureDNS(object):
     ram_cache6 = {}
     cache_created = time.time()
     session = requests.Session()
+    pending_requests_4 = []
+    pending_requests_6 = []
 
     @staticmethod
     def add_to_ram_cache4(url: str, ip):
@@ -376,9 +378,9 @@ class SecureDNS(object):
         c = pycurl.Curl()
 
         tmp_hostname = hostname # hostname.replace("www.", "")
-        if tmp_hostname not in self.pending_requests_4:
+        if tmp_hostname not in SecureDNS.pending_requests_4:
             print(">>>>>>>> [" + self.provider_name + "] IPv4 FOR " + tmp_hostname + " NOT IN CACHE >>>>>>>>>>")
-            self.pending_requests_4.append(tmp_hostname)
+            SecureDNS.pending_requests_4.append(tmp_hostname)
         else:
             # wait 5 seconds for response
             for i in range(5):
@@ -386,12 +388,12 @@ class SecureDNS(object):
                 print(">>>>>>>> [" + self.provider_name + "]  IPv4 FOR " + tmp_hostname + " NOT IN CACHE >>>>>> WAITING (" + str(i) + ") >>>>")
                 ip = SecureDNS.get_ip_from_cache(tmp_hostname)
                 if ip is not None:
-                    if tmp_hostname in self.pending_requests_4:
-                        self.pending_requests_4.remove(tmp_hostname)
+                    if tmp_hostname in SecureDNS.pending_requests_4:
+                        SecureDNS.pending_requests_4.remove(tmp_hostname)
                     return ip
 
-            if tmp_hostname in self.pending_requests_4:
-                self.pending_requests_4.remove(tmp_hostname)
+            if tmp_hostname in SecureDNS.pending_requests_4:
+                SecureDNS.pending_requests_4.remove(tmp_hostname)
             return None
 
         hostname_orig = tmp_hostname
@@ -425,14 +427,14 @@ class SecureDNS(object):
                         if response_type is A:
                             answers.append(data)
                             SecureDNS.add_url_to_cache(url=hostname_orig, ip=data)
-                if tmp_hostname in self.pending_requests_4:
-                    self.pending_requests_4.remove(tmp_hostname)
+                if tmp_hostname in SecureDNS.pending_requests_4:
+                    SecureDNS.pending_requests_4.remove(tmp_hostname)
                 if answers is []:    
                     return None
                 return answers
         #
-        if tmp_hostname in self.pending_requests_4:
-            self.pending_requests_4.remove(tmp_hostname)
+        if tmp_hostname in SecureDNS.pending_requests_4:
+            SecureDNS.pending_requests_4.remove(tmp_hostname)
         #
         c.close()
         return None
@@ -442,15 +444,13 @@ class SecureDNSCloudflare(SecureDNS):
     def __init__(
             self
     ):
-        self.url: str = 'https://cloudflare-dns.com/dns-query'
+        self.url: str = 'https:///dns-query.cloudflare-dns.com/dns-query'
         self.params = {
             'ct': 'application/dns-json',
             'type': 1
         }
         self.provider_name = "cloudflare"
         self.response_keys = ('name', 'type', 'TTL', 'data')
-        self.pending_requests_4 = []
-        self.pending_requests_6 = []
 
 
 class SecureDNSGoogle(SecureDNS):
@@ -467,8 +467,6 @@ class SecureDNSGoogle(SecureDNS):
         }
         self.provider_name = "google"
         self.response_keys = ('name', 'type', 'TTL', 'data')
-        self.pending_requests_4 = []
-        self.pending_requests_6 = []
 
 # curl -vk "https://dns.quad9.net:5053/dns-query?ct=application/dns-json&type=1&name=facebook.com"
 class SecureQuad9(SecureDNS):
@@ -483,5 +481,3 @@ class SecureQuad9(SecureDNS):
         }
         self.provider_name = "quad9"
         self.response_keys = ('name', 'type', 'TTL', 'data')
-        self.pending_requests_4 = []
-        self.pending_requests_6 = []
